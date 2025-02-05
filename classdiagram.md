@@ -1,19 +1,33 @@
 <!-- Movies Ticket Reserved System -->
 
+<!-- customer info in booking controller, booking delete status, seat might be used again but status still not change + add date to teater/seat? -->
+
 ```mermaid
 classDiagram
 
     %% AuthControllers
-    AuthController --> BookingController : use
     Customer --> Booking : make
+    Booking --> Food
+    Visitor --> Movie : search from
+
+    Booking --> Showtime
+
+    BookingController o-- Food
 
     %% Booking and Payment System
     BookingController --> Booking : handle
     BookingController o-- Movie : manage
     BookingController o-- Theater : manage
+    BookingController o-- Customer : keep
 
     Theater *-- Seat : has
+    SeatBooked --|> Seat
+    SeatBooked <-- Ticket
+    Showtime --> Theater 
+    Showtime --> SeatBooked
     Movie o-- Showtime : has
+    FoodAmount --|> Food
+
 
     Booking --> Payment : has
     Booking --> Ticket : generates
@@ -23,18 +37,21 @@ classDiagram
     Payment --> Credit_card : uses
     Payment --> QrPayment : uses
 
+
+
     %%User Roles and Authentication
-    AuthController <-- Visitor
     Visitor <|-- Guest
     Visitor <|-- Customer
     Customer <|-- Member
-    Customer <|-- Not_member
+    Customer <|-- Regular
 
 
     class BookingController{
         -movie_list: list
         -theater_list: list
         -booking_list: list
+        -customer_list : list
+        -food_list : list
         +add_booking()
         +cancel_booking()
         +show_booking()
@@ -65,14 +82,18 @@ classDiagram
         -theater_id
         -seat_list: list
         +get_available_seat(showtime_id)
-        -validate_theater()
+        +validate_theater()
     }
 
     class Seat{
         -seat_id
         -seat_type
-        -status
         +validate_seat()
+    }
+
+    class SeatBooked{
+        -status
+        +update_status()
     }
 
     class Booking{
@@ -80,13 +101,20 @@ classDiagram
         -Showtime showtime
         -selected_seat_list: list
         -total_price
-        -status
+        -food_list : list
+    }
+
+    class FoodAmount{
+        -Food food
+        -amount
+        +add_amount()
     }
 
     class Ticket{
         -ticket_id
         -Booking booking
         -status
+        -seat
         +validate_ticket()
     }
 
@@ -135,18 +163,13 @@ classDiagram
         +make_payment()
     }
 
-    class AuthController{
-        +sign_in()
-        +sign_up()
-        +sign_out()
-    }
-
     class Visitor{
         +browse_movie()
     }
 
     class Guest{
-        
+        +sign_in()
+        +sign_up()
     }
 
     class Customer {
@@ -154,16 +177,27 @@ classDiagram
         -email
         -customer_id
         -membership_status
+        -booking_list: list
+        -ticket_list: list
         +book_ticket()
         +refund_ticket()
+        +view_booking_history()
+        +view_tickets()
+        +sign_out()
     }
 
     class Member{
-        -Point
+        -point
+        -payment_detail
         +redeem_point()
     }
 
-    class Not_member{
+    class Regular{
         +upgrade_to_member()
+    }
+
+    class Food{
+        -menu
+        -price
     }
 ```
