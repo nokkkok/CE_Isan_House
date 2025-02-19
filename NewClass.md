@@ -30,191 +30,192 @@ classDiagram
     Booking --> Payment : has
     Booking --> Ticket : generates
     Ticket --> QrTicket : generates
-    Payment --> Debit_card : uses
-    Payment --> Credit_card : uses
+    Payment --> DebitCard : uses
+    Payment --> CreditCard : uses
     Payment --> QrPayment : uses
 
     class BookingController{
-        -movieList: List~Movie~
-        -theaterList: List~Theater~
-        -bookingList: List~Booking~
-        -customerList: List~Customer~
-        -foodList: List~Food~
-        +addBooking(Booking)
-        +cancelBooking(bookingId)
-        +getBooking(bookingId)
-        +getCustomerBookings(customerId)
+        -movie_list: List~Movie~
+        -theater_list: List~Theater~
+        -booking_list: List~Booking~
+        -customer_list: List~Customer~
+        -food_list: List~Food~
+        +add_booking(booking)
+        +cancel_booking(booking_id)
+        +get_booking(booking_id)
+        +get_customer_bookings(customer_id)
     }
 
     class Movie{
-        -movieId: string
+        -movie_id: string
         -title: string
         -trailer: string
         -description: string
         -duration: int
         -genre: string[]
-        -showtimeList: List~Showtime~
-        +addShowtime(Showtime)
-        +getShowtimes()
-        +isAvailable()
+        -showtime_list: List~Showtime~
+        +add_showtime(showtime)
+        +get_showtimes()
+        +is_available()
     }
 
     class Showtime {
-        -showtimeId: string
+        -showtime_id: string
         -movie: Movie
         -theater: Theater
         -date: Date
         -time: Time
         -price: decimal
-        -bookedSeats: List~SeatBooked~
-        +getAvailableSeats()
-        +isAvailable()
+        -booked_seats: List~SeatBooked~
+        +get_available_seats()
+        +is_available()
     }
 
     class Theater {
-        -theaterId: string
+        -theater_id: string
         -name: string
-        -seatList: List~Seat~
-        +getSeatMap()
+        -seat_list: List~Seat~
+        +get_seat_map()
     }
 
-
     class Seat{
-        -seatId: string
+        -seat_id: string
         -row: string
         -number: int
         -type: string
         -price: decimal
-        +isAvailable()
+        +is_available()
     }
 
     class SeatBooked {
-        -seatId: string
+        -seat_id: string
         -status: string
-        -bookingId: string
-        +updateStatus(status)
+        -booking_id: string
+        +update_status(status)
     }
 
     class Booking{
-        -bookingId: string
+        -booking_id: string
         -showtime: Showtime
-        -selectedSeats: List~SeatBooked~
-        -foodList: List~FoodOrder~
-        -totalPrice: decimal
+        -selected_seats: List~SeatBooked~
+        -food_list: List~FoodOrder~
+        -total_price: decimal
         -status: string
-        -createdAt: datetime
-        +calculateTotal()
-        +confirmBooking()
-        +cancelBooking()
+        -created_at: datetime
+        +calculate_total()
+        +confirm_booking()
+        +cancel_booking()
     }
 
     class FoodOrder{
         -food: Food
         -quantity: int
         -subtotal: decimal
-        +updateQuantity()
-        +calculateSubtotal()
+        +update_quantity()
+        +calculate_subtotal()
     }
 
     class Food{
-        -foodId: string
+        -food_id: string
         -name: string
         -description: string
         -price: decimal
         -quantity: int
-        +isAvailable()
-        +updateStock()
+        +is_available()
+        +update_stock()
     }
 
     class Ticket{
-        -ticketId: string
+        -ticket_id: string
         -booking: Booking
         -seat: SeatBooked
         -status: string
-        +generateQR()
+        +generate_qr()
         +validate()
         +cancel()
     }
 
     class QrTicket{
-        -qrCodeId: string
+        -qr_code_id: string
         -content: string
         +generate()
         +validate()
     }
 
     class Payment{
-        -paymentId: string
+        -payment_id: string
         -booking: Booking
         -amount: decimal
         -method: string
         -status: string
-        +processPayment()
-        +validatePayment()
-        +getStatus()
+        +process_payment()
+        +validate_payment()
+        +get_status()
     }
 
     class QrPayment{
-        -qrCodeId: string
-        -expiryTime: datetime
-        +generateQRCode()
-        +validateQRCode()
-        +checkExpiry()
+        -qr_code_id: string
+        -expiry_time: datetime
+        +generate_qr_code()
+        +validate_qr_code()
+        +check_expiry()
     }
 
-    class Debit_card{
-        -cardId: string
-        -cardNumber: string
-        -cardHolder: string
-        -expiryDate: date
+    class DebitCard{
+        -card_id: string
+        -card_number: string
+        -card_holder: string
+        -expiry_date: date
         -cvv: string
-        +validateCard()
-        +processPayment()
+        +validate_card()
+        +process_payment()
     }
 
-    class Credit_card{
-        -cardId: string
-        -cardNumber: string
-        -cardHolder: string
-        -expiryDate: date
+    class CreditCard{
+        -card_id: string
+        -card_number: string
+        -card_holder: string
+        -expiry_date: date
         -cvv: string
-        +validateCard()
-        +processPayment()
+        +validate_card()
+        +process_payment()
     }
 
     class Visitor{
-        +browseMovies()
-        +searchMovies()
-        +viewShowtimes()
+        +browse_movies()
+        +search_movies()
+        +view_showtimes()
     }
 
     class Guest{
-        +signIn()
-        +signUp()
+        +sign_in()
+        +sign_up()
     }
 
     class Customer {
-        -customerId: string
+        -customer_id: string
         -name: string
         -email: string
-        -bookingList: List~Booking~
-        -ticketList: List~Ticket~
-        +bookTicket()
-        +cancelTicket()
-        +viewBookingHistory()
-        +viewTickets()
-        +signOut()
+        -booking_list: List~Booking~
+        -ticket_list: List~Ticket~
+        +book_ticket()
+        +cancel_ticket()
+        +view_booking_history()
+        +view_tickets()
+        +sign_out()
     }
 
     class Member{
         -points: int
-        -paymentDetails: List~PaymentMethod~
-        +redeemPoints()
-        +earnPoints()
-        +getPointBalance()
+        -payment_details: List~PaymentMethod~
+        +redeem_points()
+        +earn_points()
+        +get_point_balance()
     }
 
     class Regular{
-        +upgradeToMember()
+        +upgrade_to_member()
     }
 ```
+ 
+
