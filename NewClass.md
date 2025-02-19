@@ -182,7 +182,7 @@ classDiagram
     }
 
     class Visitor{
-        +browse_movies()
+        +search_movies()
         +search_movies()
         +view_showtimes()
     }
