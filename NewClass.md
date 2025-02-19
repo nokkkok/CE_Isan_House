@@ -41,13 +41,13 @@ classDiagram
         -customer_list: List~Customer~
         -food_list: List~Food~
         +add_booking(booking)
-        +process_refund(booking_id)
-        +update_booking_status(booking)
-        +check_booking_id(booking_id)
+        +cancel_booking(booking_id)
         +get_booking(booking_id)
         +get_customer_bookings(customer_id)
-        +get_Available_movie()
-        +check_Movie()
+        +select_movie(movie_id)
+        +select_showtime(showtime_id)
+        +choose_seats(seat_list)
+        +confirm_booking()
     }
 
     class Movie{
@@ -73,6 +73,7 @@ classDiagram
         -booked_seats: List~SeatBooked~
         +get_available_seats()
         +is_available()
+        +check_available_seats()
     }
 
     class Theater {
@@ -95,7 +96,8 @@ classDiagram
         -seat_id: string
         -status: string
         -booking_id: string
-        +update_seat_status(status)
+        +update_status(status)
+        +reserve_seats(seat_list)
     }
 
     class Booking{
@@ -137,6 +139,8 @@ classDiagram
         +generate_qr()
         +validate()
         +cancel()
+        +generate_ticket()
+        +send_ticket()
     }
 
     class QrTicket{
@@ -152,7 +156,7 @@ classDiagram
         -amount: decimal
         -method: string
         -status: string
-        +process_payment()
+        +process_payment(method, amount)
         +validate_payment()
         +get_status()
     }
@@ -188,7 +192,6 @@ classDiagram
     class Visitor{
         +browse_movies()
         +search_movies()
-        +viewmovie(str)
         +view_showtimes()
     }
 
@@ -204,7 +207,7 @@ classDiagram
         -booking_list: List~Booking~
         -ticket_list: List~Ticket~
         +book_ticket()
-        +refund_ticket()
+        +cancel_ticket()
         +view_booking_history()
         +view_tickets()
         +sign_out()
@@ -222,5 +225,3 @@ classDiagram
         +upgrade_to_member()
     }
 ```
- 
-
