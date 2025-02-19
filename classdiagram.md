@@ -101,7 +101,7 @@ classDiagram
         -Showtime showtime
         -selected_seat_list: list
         -total_price
-        -food_list : list
+        -bought_food_list : list
     }
 
     class FoodAmount{
