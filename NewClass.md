@@ -41,9 +41,13 @@ classDiagram
         -customer_list: List~Customer~
         -food_list: List~Food~
         +add_booking(booking)
-        +cancel_booking(booking_id)
+        +process_refund(booking_id)
+        +update_booking_status(booking)
+        +check_booking_id(booking_id)
         +get_booking(booking_id)
         +get_customer_bookings(customer_id)
+        +get_Available_movie()
+        +check_Movie()
     }
 
     class Movie{
@@ -91,7 +95,7 @@ classDiagram
         -seat_id: string
         -status: string
         -booking_id: string
-        +update_status(status)
+        +update_seat_status(status)
     }
 
     class Booking{
@@ -182,8 +186,9 @@ classDiagram
     }
 
     class Visitor{
+        +browse_movies()
         +search_movies()
-        +search_movies()
+        +viewmovie(str)
         +view_showtimes()
     }
 
@@ -199,7 +204,7 @@ classDiagram
         -booking_list: List~Booking~
         -ticket_list: List~Ticket~
         +book_ticket()
-        +cancel_ticket()
+        +refund_ticket()
         +view_booking_history()
         +view_tickets()
         +sign_out()
