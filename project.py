@@ -174,7 +174,22 @@ class BookingController:
             if movie.movie_id == movie_id:
                 return movie
         return None
-        
+    
+    def appendmovie(self, movie):
+        self.__movie_list.append(movie)
+
+    def appendtheater(self, theater):
+        self.__theater_list.append(theater)
+
+    def appendbooking(self, booking):
+        self.__booking_list.append(booking)
+
+    def appendcustomer(self, customer):
+        self.__customer_list.append(customer)
+
+    def appendfood(self, food):
+        self.__food_list.append(food)
+
 bookingcontroller = BookingController()
         
 def create_instance(self):
@@ -190,5 +205,8 @@ def create_instance(self):
         payment = Payment("P001", booking, 30.0, "CreditCard", "Paid")
         ticket = Ticket("T001", booking, seat, "Valid")
         
-        
-        
+        bookingcontroller.appendmovie(movie)
+        bookingcontroller.appendtheater(theater)
+        bookingcontroller.appendbooking(booking)
+        bookingcontroller.appendcustomer(customer)
+        bookingcontroller.appendfood(food)
