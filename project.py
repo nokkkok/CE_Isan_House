@@ -1,5 +1,11 @@
+from datetime import datetime
+
 class Visitor:
-    pass
+    def __init__(self, name: str):
+        self.__name = name
+        
+    def search_movie(self, booking_controller, movie_name):
+        return booking_controller.search_movie(movie_name)
 
 class Guest(Visitor):
     pass
@@ -34,6 +40,30 @@ class Movie:
         self.__duration = duration
         self.__genre = genre
         self.__showtime_list = []  # List of Showtime
+    
+    @property    
+    def movie_id(self):
+        return self.__movie_id
+    
+    @property    
+    def title(self):
+        return self.__title
+    
+    @property    
+    def trailer(self):
+        return self.__trailer
+    
+    @property    
+    def description(self):
+        return self.__description
+    
+    @property    
+    def duration(self):
+        return self.__duration
+    
+    @property    
+    def genre(self):
+        return self.__genre
 
 class Showtime:
     def __init__(self, showtime_id: str, movie: Movie, theater, date, time, price: float):
@@ -73,7 +103,7 @@ class Booking:
         self.__food_list = []  # List of FoodOrder
         self.__total_price = total_price
         self.__status = status
-        self.__created_at = created_at
+        self.__created_at = datetime.now()
 
 class Food:
     def __init__(self, food_id: str, name: str, description: str, price: float, quantity: int):
@@ -138,6 +168,10 @@ class BookingController:
         self.__customer_list = []  # List of Customer
         self.__food_list = []  # List of Food
         
+    def search_movie(self, movie_name):
+        result = [movie for movie in self.__movie_list if movie_name.lower() in movie.title.lower()]
+        return result
+        
     def check_booking_id(self, booking_id):
         for booking in self.__booking_list:
             if booking.booking_id == booking_id:
@@ -165,30 +199,33 @@ class BookingController:
                     return True
         return False
     
-    def search_movie(self, movie_name):
-        result = [movie for movie in self.__movie_list if movie_name.lower() in movie.title.lower()]
-        return result
-    
     def check_Movie(self, movie_id):
         for movie in self.__movie_list:
             if movie.movie_id == movie_id:
                 return movie
         return None
-        
-bookingcontroller = BookingController()
-        
-def create_instance(self):
+    
+    def create_instance(self):
         # Creating sample data
-        movie = Movie("M001", "Sample Movie", "trailer_link", "Sample Description", 120, ["Action", "Drama"])
-        theater = Theater("T001", "Main Theater")
-        seat = Seat("S001", "A", 1, "Regular", 10.0)
-        customer = Customer("C001", "John Doe", "johndoe@example.com")
-        showtime = Showtime("ST001", movie, theater, "2025-02-19", "18:00", 15.0)
-        booking = Booking("B001", showtime, 30.0, "Confirmed", "2025-02-19T17:00:00")
-        food = Food("F001", "Popcorn", "Large Popcorn", 5.0, 50)
-        food_order = FoodOrder(food, 2, 10.0)
-        payment = Payment("P001", booking, 30.0, "CreditCard", "Paid")
-        ticket = Ticket("T001", booking, seat, "Valid")
-        
-        
+        movie = Movie("movie_id" ,"title", "trailer", "description", "duration", "genre")
+        theater = Theater("theater_id", "name")
+        seat = Seat("seat_id", "row", "number_seat", "type", "price")
+        customer = Customer("customer_id", "name", "email")
+        showtime = Showtime("showtime_id", "movie", "theater", "date", "time", "price")
+        booking = Booking("booking_id", "showtime", "total_price", "status", "created_at")
+        food = Food("food_id", "name_food", "description", "price", "quantity")
+        food_order = FoodOrder("food", "quantity", "subtotal")
+        payment = Payment("payment_id", "booking", "amount", "type", "status")
+        ticket = Ticket("ticket_id", "booking", "seat", "status")
+
+        # Adding data to controller
+        self.__movie_list.append(movie)
+        self.__theater_list.append(theater)
+        self.__customer_list.append(customer)
+        self.__booking_list.append(booking)
+        self.__food_list.append(food)
+
+# สร้างตัวแปรและเรียกใช้ create_instance
+booking_controller = BookingController()
+booking_controller.create_instance()
         
