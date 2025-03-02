@@ -52,6 +52,12 @@ classDiagram
         -booking_list: list
         -customer_list : list
         -food_list : list
+        +search_movie()
+        +chack_booking_id()
+        +process_refund()
+        +update_booking_status()
+        +update_ticket_status()
+        +check_Movie()
         +add_booking()
         +cancel_booking()
         +show_booking()
@@ -164,7 +170,8 @@ classDiagram
     }
 
     class Visitor{
-        +browse_movie()
+        -name_movie
+        +search_movie()
     }
 
     class Guest{
