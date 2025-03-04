@@ -1,36 +1,5 @@
 from datetime import datetime
 
-class Visitor:
-    def __init__(self, name: str):
-        self.__name = name
-        
-    def search_movie(self, booking_controller, movie_name):
-        return booking_controller.search_movie(movie_name)
-
-class Guest(Visitor):
-    pass
-
-class Customer(Visitor):
-    def __init__(self, customer_id: str, name: str, email: str):
-        self.__customer_id = customer_id
-        self.__name = name
-        self.__email = email
-        self.__booking_list = []  # List of Booking
-        self.__ticket_list = []  # List of Ticket
-        
-    def cancel_ticket(self, booking_id):
-        pass
-        
-
-class Member(Customer):
-    def __init__(self, customer_id: str, name: str, email: str, points: int):
-        super().__init__(customer_id, name, email)
-        self.__points = points
-        self.__payment_details = []  # List of PaymentMethod
-
-class Regular(Customer):
-    pass
-
 class Movie:
     def __init__(self, movie_id: str, title: str, trailer: str, description: str, duration: int, genre: list):
         self.__movie_id = movie_id
@@ -64,6 +33,12 @@ class Movie:
     @property    
     def genre(self):
         return self.__genre
+    
+    def add_showtime(self, showtime):
+        self.__showtime_list.append(showtime)
+        
+    def get_showtimes(self):
+        return self.__showtime_list
 
 class Showtime:
     def __init__(self, showtime_id: str, movie: Movie, theater, date, time, price: float):
@@ -73,27 +48,13 @@ class Showtime:
         self.__date = date
         self.__time = time
         self.__price = price
-        self.__booked_seats = []  # List of SeatBooked
-
-class Theater:
-    def __init__(self, theater_id: str, name: str):
-        self.__theater_id = theater_id
-        self.__name = name
-        self.__seat_list = []  # List of Seat
-
-class Seat:
-    def __init__(self, seat_id: str, row: str, number: int, type: str, price: float):
-        self.__seat_id = seat_id
-        self.__row = row
-        self.__number = number
-        self.__type = type
-        self.__price = price
-
-class SeatBooked(Seat):
-    def __init__(self, seat_id: str, row: str, number: int, type: str, price: float, status: str, booking_id: str):
-        super().__init__(seat_id, row, number, type, price)
-        self.__status = status
-        self.__booking_id = booking_id
+        self.__booked_seats = []
+        
+    def get_booked_seats(self):
+        return self.__booked_seats
+    
+    def check_available_seats(self):
+        pass
 
 class Booking:
     def __init__(self, booking_id: str, showtime: Showtime, total_price: float, status: str, created_at):
@@ -105,60 +66,15 @@ class Booking:
         self.__status = status
         self.__created_at = datetime.now()
 
-class Food:
-    def __init__(self, food_id: str, name: str, description: str, price: float, quantity: int):
-        self.__food_id = food_id
-        self.__name = name
-        self.__description = description
-        self.__price = price
-        self.__quantity = quantity
-
-class FoodOrder:
-    def __init__(self, food: Food, quantity: int, subtotal: float):
-        self.__food = food
-        self.__quantity = quantity
-        self.__subtotal = subtotal
-
-class Ticket:
-    def __init__(self, ticket_id: str, booking: Booking, seat: SeatBooked, status: str):
-        self.__ticket_id = ticket_id
-        self.__booking = booking
-        self.__seat = seat
-        self.__status = status
-
-class QrTicket:
-    def __init__(self, qr_code_id: str, content: str):
-        self.__qr_code_id = qr_code_id
-        self.__content = content
-
-class Payment:
-    def __init__(self, payment_id: str, booking: Booking, amount: float, method: str, status: str):
-        self.__payment_id = payment_id
-        self.__booking = booking
-        self.__amount = amount
-        self.__method = method
-        self.__status = status
-
-class QrPayment:
-    def __init__(self, qr_code_id: str, expiry_time):
-        self.__qr_code_id = qr_code_id
-        self.__expiry_time = expiry_time
-
-class DebitCard:
-    def __init__(self, card_id: str, card_number: str, card_holder: str, expiry_date, cvv: str):
-        self.__card_id = card_id
-        self.__card_number = card_number
-        self.__card_holder = card_holder
-        self.__expiry_date = expiry_date
-        self.__cvv = cvv
-
-class CreditCard:
-    def __init__(self, card_id: str, card_number: str, card_holder: str, expiry_date, cvv: str):
-        self.__card_id = card_id
-        self.__card_number = card_number
-        self.__card_holder = card_holder
-        self.__expiry_date = expiry_date
-        self.__cvv = cvv
+    # TODO edit class diagram
+    def calculate_total_price(self):
+        pass
+    
+    def confirm_booking(self):
+        pass
+    
+    def cancel_booking(self):
+        pass
 
 class BookingController:
     def __init__(self):
@@ -219,7 +135,211 @@ class BookingController:
 
     def append_food(self, food):
         self.__food_list.append(food)
+    
+class Food:
+    def __init__(self, food_id: str, name: str, description: str, price: float, quantity: int):
+        self.__food_id = food_id
+        self.__name = name
+        self.__description = description
+        self.__price = price
+        self.__quantity = quantity
+    
+    # if food ordered < quantity -> is_available = True
+    @property
+    def is_available(self):
+        pass
+    
+    # TODO update class diagram
+    def update_quantity(self):
+        pass
 
+class FoodOrder:
+    def __init__(self, food: Food, quantity: int):
+        self.__food = food
+        self.__quantity = quantity
+        self.__subtotal = 0 #calculate_subtotal(food.__price, quantity)
+        
+    def update_quantity(self):
+        pass
+    
+    def calculate_subtotal(self):
+        pass
+    
+class Payment:
+    def __init__(self, payment_id: str, booking: Booking, amount: int, method: str, status: str):
+        self.__payment_id = payment_id
+        self.__booking = booking
+        self.__amount = amount
+        self.__method = method
+        self.__status = status
+        
+    def process_payment(self):
+        pass
+    
+    # if paid -> status = paid
+    def validate_payment(self):
+        pass
+    
+    # paid / unpaid
+    def get_status(self):
+        pass
+
+class QrPayment:
+    def __init__(self, qr_code_id: str, expiry_time):
+        self.__qr_code_id = qr_code_id
+        self.__expiry_time = expiry_time
+        
+    def generate_qr_code(self):
+        pass
+    
+    # what
+    def validate_qr_code(self):
+        pass
+    
+    def check_expiry_time(self):
+        pass
+
+# what is this class for
+class QrTicket:
+    def __init__(self, qr_code_id: str, content: str):
+        self.__qr_code_id = qr_code_id
+        self.__content = content
+    
+    def generate():
+        pass
+    
+    def validate():
+        pass
+
+class Card:
+    def __init__(self, card_id: str, card_number: str, card_holder: str, expiry_date, cvv: str):
+        self.__card_id = card_id
+        self.__card_number = card_number
+        self.__card_holder = card_holder
+        self.__expiry_date = expiry_date
+        self.__cvv = cvv
+    
+class Seat:
+    def __init__(self, seat_id: str, row: str, number: int, type: str, price: float):
+        self.__seat_id = seat_id
+        self.__row = row
+        self.__number = number
+        self.__type = type
+        self.__price = price
+
+class SeatBooked(Seat):
+    def __init__(self, seat_id: str, row: str, number: int, type: str, price: float, status: str, booking_id: str):
+        super().__init__(seat_id, row, number, type, price)
+        self.__status = status
+        self.__booking_id = booking_id
+    
+    # อัปเดตสถานะที่นั่ง (cancelก็ลบที่นั่งออก)
+    def update_status(self):
+        pass
+    
+    # จองที่นั่ง
+    def reserve_seats(self): 
+        pass
+    
+class Theater:
+    def __init__(self, theater_id: str, name: str):
+        self.__theater_id = theater_id
+        self.__name = name
+        self.__seat_list = []
+        
+    def get_seat_map(self):
+        pass
+
+class Ticket:
+    def __init__(self, ticket_id: str, booking: Booking, seat: SeatBooked):
+        self.__ticket_id = ticket_id
+        self.__booking = booking
+        self.__seat = seat
+        self.__status = "available"
+  
+    def generate_barcode(self):
+        pass
+    
+    # what for?
+    def validate():
+        pass
+    
+    # TODO update class diagram
+    def cancel_ticket(self):
+        self__status = "cancelled"
+    
+    def use_ticket(self):
+        self.__status = "used"
+    
+    # what
+    def generate_ticket(self):
+        pass
+    
+    def send_ticket():
+        pass
+    
+class Visitor:
+    def __init__(self, name: str):
+        self.__name = name
+        
+    def search_movie(self, booking_controller, movie_name):
+        return booking_controller.search_movie(movie_name)    
+    
+    def view_movie_details():
+        pass
+    
+    def view_showtimes():
+        pass
+    
+class Guest(Visitor):
+    def register():
+        pass
+    
+    def login():
+        pass
+    
+class Customer(Visitor):
+    def __init__(self, customer_id: str, name: str, email: str):
+        self.__customer_id = customer_id
+        self.__name = name
+        self.__email = email
+        self.__booking_list = []
+        self.__ticket_list = []
+        
+    def book_ticket():
+        pass
+    
+    def cancel_ticket():
+        pass
+    
+    def view_booking_history():
+        pass
+    
+    def view_tickets():
+        pass
+    
+    def sign_out():
+        pass
+    
+class Regular(Customer):
+    def upgrade_membership():
+        pass
+    
+class Member(Customer):
+    def __init__(self, customer_id: str, name: str, email: str, points: int):
+        super().__init__(customer_id, name, email)
+        self.__points = points
+        self.__payment_details = []
+        
+    def redeem_points():
+        pass
+    
+    def earn_points():
+        pass
+    
+    def get_points_balance():
+        pass
+        
 # สร้างตัวแปรและเรียกใช้ create_instance
 booking_controller = BookingController()
 
