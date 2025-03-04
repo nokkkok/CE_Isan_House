@@ -205,27 +205,40 @@ class BookingController:
                 return movie
         return None
     
-    def create_instance(self):
-        # Creating sample data
-        movie = Movie("movie_id" ,"title", "trailer", "description", "duration", "genre")
-        theater = Theater("theater_id", "name")
-        seat = Seat("seat_id", "row", "number_seat", "type", "price")
-        customer = Customer("customer_id", "name", "email")
-        showtime = Showtime("showtime_id", "movie", "theater", "date", "time", "price")
-        booking = Booking("booking_id", "showtime", "total_price", "status", "created_at")
-        food = Food("food_id", "name_food", "description", "price", "quantity")
-        food_order = FoodOrder("food", "quantity", "subtotal")
-        payment = Payment("payment_id", "booking", "amount", "type", "status")
-        ticket = Ticket("ticket_id", "booking", "seat", "status")
-
-        # Adding data to controller
+    def append_movie(self, movie):
         self.__movie_list.append(movie)
+
+    def append_theater(self, theater):
         self.__theater_list.append(theater)
-        self.__customer_list.append(customer)
+
+    def append_booking(self, booking):
         self.__booking_list.append(booking)
+
+    def append_customer(self, customer):
+        self.__customer_list.append(customer)
+
+    def append_food(self, food):
         self.__food_list.append(food)
 
 # สร้างตัวแปรและเรียกใช้ create_instance
 booking_controller = BookingController()
-booking_controller.create_instance()
-        
+
+def create_instance():
+    movie = Movie("M001", "Sample Movie", "trailer_link", "Sample Description", 120, ["Action", "Drama"])
+    theater = Theater("T001", "Main Theater")
+    seat = Seat("S001", "A", 1, "Regular", 10.0)
+    customer = Customer("C001", "John Doe", "johndoe@example.com")
+    showtime = Showtime("ST001", movie, theater, "2025-02-19", "18:00", 15.0)
+    booking = Booking("B001", showtime, 30.0, "Confirmed", "2025-02-19T17:00:00")
+    food = Food("F001", "Popcorn", "Large Popcorn", 5.0, 50)
+    food_order = FoodOrder(food, 2, 10.0)
+    payment = Payment("P001", booking, 30.0, "CreditCard", "Paid")
+    ticket = Ticket("T001", booking, seat, "Valid")
+    
+    booking_controller.append_movie(movie)
+    booking_controller.append_theater(theater)
+    booking_controller.append_booking(booking)
+    booking_controller.append_customer(customer)
+    booking_controller.append_food(food)
+
+create_instance()
