@@ -61,6 +61,11 @@ classDiagram
         +add_booking()
         +cancel_booking()
         +show_booking()
+        +append_movie()
+        +append_theater()
+        +append_booking()
+        +append_customer()
+        +append_food()
     }
     
     class Movie{
