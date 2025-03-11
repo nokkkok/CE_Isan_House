@@ -322,7 +322,7 @@ def create_page_structure(content, request=None):
 
 # Homepage Route 
 @rt('/') 
-def get(request):  # Add request parameter
+def homepage(request):  # Changed from 'get' to 'homepage'
     return Titled(
         *create_page_structure(
             Container(
@@ -340,7 +340,7 @@ def get(request):  # Add request parameter
                 ),
                 
             ),
-            request=request  # Pass the request to create_page_structure
+            request=request
         )
     )
 
@@ -762,6 +762,12 @@ def book_seats_post(request, showtime_id: int, seats: List[str] = Form([])):
     
     # Calculate initial price
     new_booking.calculate_total_price()
+
+    # Ensure food orders affect total price
+    updated_total = new_booking.total_price
+
+    print(f"[DEBUG] Booking Final Total Price (Seats + Food): ${updated_total}")
+
     
     # Add booking to controller
     booking_controller.bookings.append(new_booking)
@@ -786,7 +792,7 @@ def book_seats_post(request, showtime_id: int, seats: List[str] = Form([])):
     )
 
 @rt('/select-food/{booking_id}')
-def get(request, booking_id: str):
+def select_food(request, booking_id: str):  # Changed from 'get' to 'select_food'
     # Find the booking
     booking = None
     if hasattr(booking_controller, 'bookings'):
@@ -821,7 +827,10 @@ def get(request, booking_id: str):
                     P(f"Movie: {booking.showtime.movie.name}", style="margin:5px 0;"),
                     P(f"Time: {booking.showtime.time}", style="margin:5px 0;"),
                     P(f"Seats: {', '.join(booking.seats)}", style="margin:5px 0;"),
-                    P(f"Ticket Total: ${booking.total_price:.2f}", style="margin:5px 0;"),
+                    P(f"Ticket Total (Seats Only): ${len(booking.seats) * 10:.2f}", style="margin:5px 0;"),
+                    P(f"Food Total (Selected): $0.00", id="foodTotal", style="margin:5px 0;"),
+                    P(f"Final Total: ${booking.total_price:.2f}", id="finalTotal", style="margin:5px 0;font-weight:bold;color:#4CAF50;"),
+
                     style="background-color:#f8f8f8;padding:15px;border-radius:8px;margin-bottom:30px;"
                 ),
                 
@@ -845,6 +854,7 @@ def get(request, booking_id: str):
                                     value="0",
                                     min="0",
                                     max=str(food.quantity),
+                                    oninput="updateTotal()",
                                     style="width:60px;padding:5px;border:1px solid #ddd;border-radius:4px;"
                                 ),
                                 style="margin-left:15px;"
@@ -894,28 +904,26 @@ def process_food_selection(request, booking_id: str = Form(...)):
                 break
     
     if not booking:
+        print("[ERROR] Booking not found!")
         return RedirectResponse(url="/", status_code=303)
+
+    # Store original ticket price for debugging
+    original_ticket_price = booking.total_price
     
-    # Store original ticket price
-    original_ticket_price = float(booking.total_price)
-    food_total = 0.0
-    food_orders = []
+    # Clear existing food orders to avoid duplicates
+    booking.food_orders.clear() if hasattr(booking, 'food_orders') else None
     
     try:
-        # Get form data properly
-        form_data = {}
-        for key, value in request.form():
-            form_data[key] = value
-        
-        # Debug print
-        print("Form data:", form_data)
-        
+        # Get form data
+        form_data = {key: value for key, value in request.form()}
+        print("[DEBUG] Form data received:", form_data)
+
         # Process each food item
         for key, value in form_data.items():
             if key.startswith('food_') and value.isdigit() and int(value) > 0:
                 food_id = key.replace('food_', '')
                 quantity = int(value)
-                
+
                 # Find food item
                 food_item = None
                 for food in booking_controller.food_list:
@@ -924,47 +932,31 @@ def process_food_selection(request, booking_id: str = Form(...)):
                         break
                 
                 if food_item and food_item.is_available and quantity <= food_item.quantity:
-                    subtotal = float(food_item.price) * quantity
-                    food_total += subtotal
-                    
-                    # Debug print individual food item
-                    print(f"Adding food: {food_item.name}, qty: {quantity}, price: ${food_item.price}, subtotal: ${subtotal}")
-                    
-                    # Create food order object
+                    # Create food order and add to booking
                     food_order = FoodOrder(food_item, quantity)
-                    food_orders.append(food_order)
+                    booking.add_food_order(food_order)
+                    print(f"[DEBUG] Added {quantity}x {food_item.name} (${food_item.price} each)")
+
     except Exception as e:
-        print(f"Error processing food selection: {str(e)}")
+        print(f"[ERROR] Processing food selection: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+    # Calculate the new total price
+    booking.calculate_total_price()
     
-    # Store food orders in booking
-    if not hasattr(booking, 'food_orders'):
-        booking.food_orders = []
-    booking.food_orders = food_orders
-    
-    # Calculate new total (bypassing the class method since it's not working properly)
-    # DIRECT APPROACH: Calculate seat price plus food total
-    seat_price = len(booking.seats) * 10.0  # $10 per seat
-    total_amount = seat_price + food_total
-    
-    # Override the booking's total price directly - this is the key fix
-    try:
-        # Using name mangling to access private attribute
-        booking._Booking__total_price = total_amount
-    except Exception as e:
-        print(f"Error setting total price: {str(e)}")
-    
-    # Log debug info
-    print(f"Original ticket price: ${original_ticket_price}")
-    print(f"Food total: ${food_total}")
-    print(f"New calculated total: ${total_amount}")
-    print(f"Final booking price after update: ${booking.total_price}")
-    
-    # Redirect to payment page with the correct total
-    # Use the calculated total rather than relying on the object's property
+    # Print debugging info
+    print(f"[DEBUG] Original Ticket Price: ${original_ticket_price}")
+    print(f"[DEBUG] Food Orders Count: {len(booking.food_orders)}")
+    print(f"[DEBUG] Food Total: ${sum(f.subtotal for f in booking.food_orders)}")
+    print(f"[DEBUG] Final Booking Price: ${booking.total_price}")
+
+    # Redirect to payment with the correct total
     return RedirectResponse(
-        url=f"/payment?booking_id={booking_id}&amount={total_amount}",
+        url=f"/payment?booking_id={booking_id}&amount={booking.total_price}",
         status_code=303
     )
+
 
 @rt('/complete-booking/{showtime_id}')
 def complete_booking(request, showtime_id: int, seats: str = ""):
@@ -1160,7 +1152,7 @@ def process_payment(booking_id: str = Form(...), payment_method: str = Form(...)
 
 # Search Route
 @rt('/search')
-def get(request, search: str = ""):  # Add request parameter
+def search(request, search: str = ""):  # Changed from 'get' to 'search'
     if not search:
         return RedirectResponse('/')
     
@@ -1184,7 +1176,7 @@ def get(request, search: str = ""):  # Add request parameter
                     style="display: flex; flex-wrap: wrap; gap: 20px;"
                 ) if found_movies else P("No movies found matching your search.")
             ),
-            request=request  # Pass the request to create_page_structure
+            request=request
         )
     )
 
@@ -1636,52 +1628,13 @@ def repay(request, booking_id: str = "", amount: str = ""):
     )
 
 @rt('/login')
-def get(request=None):
-    # Get query parameters
-    required = request.query_params.get("required") if request else None
-    redirect_url = request.query_params.get("redirect") if request else None
-    message = request.query_params.get("message") if request else None
-    error = request.query_params.get("error") if request else None
-    
+def get():
     return Titled(
         "Login - CE ISAN HOUSE",
         *create_page_structure(
             Container(
                 H1("Login", style="text-align:center;margin-bottom:30px;"),
-                
-                # Show message if login is required for booking
-                Div(
-                    P("Please log in to continue with your booking.", 
-                      style="color:white;text-align:center;"),
-                    style="background-color:#ff9800;padding:10px;border-radius:4px;margin-bottom:20px;"
-                ) if required else None,
-                
-                # Success message
-                Div(
-                    P("Your account has been created successfully. Please log in.", 
-                      style="color:white;text-align:center;"),
-                    style="background-color:#4CAF50;padding:10px;border-radius:4px;margin-bottom:20px;"
-                ) if message == "account_created" else None,
-                
-                # Error message
-                Div(
-                    P("Invalid email or password. Please try again.", 
-                      style="color:white;text-align:center;"),
-                    style="background-color:#f44336;padding:10px;border-radius:4px;margin-bottom:20px;"
-                ) if error == "invalid_credentials" else None,
-                
-                # Session error
-                Div(
-                    P("Your session has expired. Please log in again.", 
-                      style="color:white;text-align:center;"),
-                    style="background-color:#f44336;padding:10px;border-radius:4px;margin-bottom:20px;"
-                ) if error == "invalid_session" else None,
-                
                 Form(
-                    # Hidden field to pass the redirect URL if needed
-                    Input(type="hidden", name="redirect", value=redirect_url) if redirect_url else None,
-                    
-                    # Regular login fields
                     Div(
                         Label("Email", for_="email", style="display:block;margin-bottom:5px;font-weight:bold;"),
                         Input(type="email", id="email", name="email", placeholder="Enter your email", 
@@ -1705,13 +1658,13 @@ def get(request=None):
                     action="/login",
                     style="max-width:400px;margin:0 auto;padding:20px;background-color:#f9f9f9;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
                 )
-            ),
-            request=request
+            )
         )
     )
 
+# Login Post Handler
 @rt('/login', methods=["POST"])
-def login_post(email: str = Form(...), password: str = Form(...), redirect: str = Form(None)):
+def login_post(email: str = Form(...), password: str = Form(...)):
     # Find customer with matching email
     found_customer = None
     for customer in booking_controller.customer_list:
@@ -1753,11 +1706,11 @@ def login_post(email: str = Form(...), password: str = Form(...), redirect: str 
             )
         )
     
-    # Login successful - redirect to the requested page or profile page
-    redirect_url = redirect if redirect else "/profile"
-    response = RedirectResponse(url=redirect_url, status_code=303)
+    # Login successful - redirect to profile page or homepage
+    response = RedirectResponse(url="/profile")
     response.set_cookie(key="customer_id", value=found_customer.customer_id)
     return response
+
 
 # Signup Page Route
 @rt('/signup')
@@ -2539,3 +2492,4 @@ def verify_qr_payment(request, booking_id: str = Form(...), amount: str = Form(.
     )
 
 serve()
+
