@@ -225,9 +225,13 @@ class Movie:
         self.__description = description
         self.__image_url = image_url or "https://placehold.co/300x450"
         self.__showtimes = []  # Store showtimes for the movie
-        self._trailer_url = trailer_url
+        self.__trailer_url = trailer_url
         Movie.next_id += 1
         
+    @property
+    def trailer_url(self):
+        return self.__trailer_url if hasattr(self, "_Movie__trailer_url") else '#'
+    
     @property
     def movie_id(self):
         return self.__movie_id
@@ -312,7 +316,7 @@ class Booking:
         self.__showtime = showtime
         self.__seats = seats or []  # List of seat IDs (strings like "A1", "B5")
         self.__food_list = []  # List of FoodOrder
-        self.__total_price = total_price  # Will be calculated if not provided
+        self.__total_price = float(total_price)  # Will be calculated if not provided
         self.__status = status
         self.__created_at = timestamp or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
@@ -350,7 +354,8 @@ class Booking:
         
     @property
     def total_price(self):
-        return self.__total_price
+        food_total = sum(order.subtotal for order in self.food_orders) if hasattr(self, 'food_orders') else 0
+        return float(self.__total_price) + food_total
         
     @status.setter
     def status(self, new_status):
@@ -375,9 +380,10 @@ class Booking:
         return False
     
     def add_food_order(self, food_order):
-        """Add a food order to the booking"""
-        self.__food_list.append(food_order)
-        self.__total_price += food_order.subtotal
+        if not hasattr(self, 'food_orders'):
+            self.food_orders = []
+        self.food_orders.append(food_order)
+        self.total_price += food_order.subtotal
         
     def calculate_total_price(self):
         # Calculate total price based on seats and food
@@ -395,6 +401,12 @@ class Booking:
         """Mark the booking as cancelled"""
         self.__status = "Cancelled"
         return True
+    
+    def add_food_order(self, food_order):
+        if not hasattr(self, 'food_orders'):
+            self.food_orders = []
+        self.food_orders.append(food_order)
+        self.total_price += food_order.subtotal
     
 class Food:
     def __init__(self, food_id: str, name: str, description: str, price: float, quantity: int):
@@ -435,10 +447,10 @@ class Food:
         return False
 
 class FoodOrder:
-    def __init__(self, food: Food, quantity: int):
-        self.__food = food
-        self.__quantity = quantity
-        self.__subtotal = self.calculate_subtotal()
+    def __init__(self, food, quantity):
+        self.food = food
+        self.quantity = quantity
+        self.subtotal = float(food.price) * quantity
         
     @property
     def food(self):
