@@ -136,22 +136,14 @@ def create_instance():
     booking_controller = BookingController()
 
     # Add movies
-    movie1 = Movie("Decision to Leave", "Mystery", 2022, "138", "A detective investigating a man's death falls for the man's mysterious wife.", "Images/decision_to_leave.jpg")
-    movie1._trailer_url = "https://www.youtube.com/watch?v=A33AdB4u8GQ"
-    movie2 = Movie("Burning", "Drama", 2018, "148", "A mysterious thriller about a young deliveryman, his childhood friend, and a rich stranger.", "Images/burning.jpg")
-    movie2._trailer_url = "https://www.youtube.com/watch?v=oihHs2Errwk"
-    movie3 = Movie("Past Lives", "Drama", 2023, "106", "A woman is reunited with her childhood friend and first love while her American husband watches on.", "Images/past_lives.jpg")
-    movie3._trailer_url = "https://www.youtube.com/watch?v=kA244xewjcI"
-    movie4 = Movie("After Yang", "Science Fiction", "96", 2021, "A father and daughter try to save their robot family member.", "Images/after_yang.jpg")
-    movie4._trailer_url = "https://www.youtube.com/watch?v=Kwp32zLc08c"
-    movie5 = Movie("12 Angry Men", "Drama", 1957, "97", "A jury of 12 men must decide the fate of a young man accused of murder.", "Images/12_angry_men.jpg")
-    movie5._trailer_url = "https://www.youtube.com/watch?v=TEN-2uTi2c0&t=2s"
-    movie6 = Movie("Memories of Murder", "Crime", "131", 2003, "Detectives struggle to catch a serial killer in rural South Korea in the 1980s.", "Images/memories_of_murder.jpg")
-    movie6._trailer_url = "https://www.youtube.com/watch?v=0n_HQwQU8ls"
-    movie7 = Movie("Dune", "Science Fiction", "155", 2021, "A noble family becomes embroiled in a war for control over the galaxy's most valuable resource.", "Images/dune.jpg")
-    movie7._trailer_url = "https://www.youtube.com/watch?v=n9xhJrPXop4"
-    movie8 = Movie("Spirited Away", "Fantasy", "125", 2001, "A young girl enters a world of spirits and must work to free herself and her parents.", "Images/spirited_away.jpg")
-    movie8._trailer_url = "https://www.youtube.com/watch?v=ByXuk9QqQkk"
+    movie1 = Movie("Decision to Leave", "Mystery", 2022, "138", "A detective investigating a man's death falls for the man's mysterious wife.", "Images/decision_to_leave.jpg", "https://www.youtube.com/watch?v=A33AdB4u8GQ")
+    movie2 = Movie("Burning", "Drama", 2018, "148", "A mysterious thriller about a young deliveryman, his childhood friend, and a rich stranger.", "Images/burning.jpg", "https://www.youtube.com/watch?v=oihHs2Errwk")
+    movie3 = Movie("Past Lives", "Drama", 2023, "106", "A woman is reunited with her childhood friend and first love while her American husband watches on.", "Images/past_lives.jpg", "https://www.youtube.com/watch?v=kA244xewjcI")
+    movie4 = Movie("After Yang", "Science Fiction", "96", 2021, "A father and daughter try to save their robot family member.", "Images/after_yang.jpg", "https://www.youtube.com/watch?v=Kwp32zLc08c")
+    movie5 = Movie("12 Angry Men", "Drama", 1957, "97", "A jury of 12 men must decide the fate of a young man accused of murder.", "Images/12_angry_men.jpg", "https://www.youtube.com/watch?v=TEN-2uTi2c0&t=2s")
+    movie6 = Movie("Memories of Murder", "Crime", "131", 2003, "Detectives struggle to catch a serial killer in rural South Korea in the 1980s.", "Images/memories_of_murder.jpg", "https://www.youtube.com/watch?v=0n_HQwQU8ls")
+    movie7 = Movie("Dune", "Science Fiction", "155", 2021, "A noble family becomes embroiled in a war for control over the galaxy's most valuable resource.", "Images/dune.jpg", "https://www.youtube.com/watch?v=n9xhJrPXop4")
+    movie8 = Movie("Spirited Away", "Fantasy", "125", 2001, "A young girl enters a world of spirits and must work to free herself and her parents.", "Images/spirited_away.jpg", "https://www.youtube.com/watch?v=ByXuk9QqQkk")
 
     booking_controller.append_movie(movie1)
     booking_controller.append_movie(movie2)
@@ -397,7 +389,7 @@ def showtime_page(id: int, request=None):
                                 "Watch Trailer",
                                 style="display:flex;align-items:center;justify-content:center;"
                             ),
-                            href=getattr(movie, 'trailer_url', '#'), 
+                            href=movie.trailer_url,
                             target="_blank",  # Opens in new tab
                             style="display:inline-block;background-color:#FF0000;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;margin-top:20px;"
                         ),
@@ -515,7 +507,8 @@ def all_showtimes(request=None):
 
 @rt('/seats/{id}')
 def seats_page(request, id: int):
-    # We no longer check login here - anyone can view seats
+    # Get error parameter from URL if present
+    error = request.query_params.get("error") if hasattr(request, "query_params") else None
     
     # Find showtime with matching ID across all movies
     found_showtime = None
@@ -546,34 +539,43 @@ def seats_page(request, id: int):
     booked_seats = []
     if hasattr(booking_controller, 'bookings'):
         for booking in booking_controller.bookings:
-            # Only include active bookings for this showtime
             if booking.showtime.id == id and booking.status != "Cancelled":
                 booked_seats.extend(booking.seats)
     
-    # Return seat selection form - using the exact styling from your existing code
     return Titled(
         f"Select Seats - {found_showtime.movie.name}",
         *create_page_structure(
             Container(
                 H1(f"Select Seats for {found_showtime.movie.name}", style="text-align:center;"),
-                # Movie poster with proper styling
+                
+                # Error message for no seats selected
+                Div(
+                    P("Please select at least one seat to continue.", 
+                      style="color:white;text-align:center;"),
+                    style="background-color:#f44336;padding:10px;border-radius:4px;margin-bottom:20px;"
+                ) if error == "no_seats" else None,
+                
+                # Movie poster
                 Div(
                     Img(src=found_showtime.movie.image_url, alt=f"{found_showtime.movie.name} poster", 
                         style="width:200px;height:auto;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2);"),
                     style="text-align:center;margin-bottom:30px;"
                 ),
-                # Movie info
+                
+                # Showtime info
                 Div(
                     P(f"Time: {found_showtime.time}", style="font-weight:bold;text-align:center;"),
                     P(f"Theater: {found_showtime.theater.name}", style="font-weight:bold;text-align:center;"),
                     style="margin-bottom:20px;"
                 ),
+                
                 # Theater screen visual
                 Div(
                     P("SCREEN", style="text-align:center;color:#fff;font-weight:bold;"),
                     style="background-color:#555;padding:5px;width:80%;max-width:500px;margin:0 auto 30px;border-radius:5px;"
                 ),
-                # Seat selection form with a cinema layout
+                
+                # Seat selection form
                 Form(
                     # Seat legend
                     Div(
@@ -582,17 +584,14 @@ def seats_page(request, id: int):
                         Span("■ Booked", style="color:#ff3333;font-weight:bold;"),
                         style="margin-bottom:20px;text-align:center;"
                     ),
-                    # Seat rows with labels
+                    
+                    # Seat grid
                     *[
                         Div(
-                            # Row label
                             Span(f"Row {chr(65+row)}", style="margin-right:20px;font-weight:bold;width:70px;display:inline-block;"),
-                            # Seats in this row
                             *[
                                 Label(
-                                    # Create seat ID
                                     seat_id := f"{chr(65+row)}{seat}",
-                                    # Create checkbox (hidden if seat is booked)
                                     Input(
                                         type="checkbox", 
                                         id=f"seat-{seat_id}", 
@@ -601,7 +600,6 @@ def seats_page(request, id: int):
                                         disabled="disabled" if seat_id in booked_seats else None,
                                         style="display:none;"
                                     ),
-                                    # Create visual seat element
                                     Span(
                                         f"{seat}",
                                         cls="seat-booked" if seat_id in booked_seats else "seat-label"
@@ -612,6 +610,7 @@ def seats_page(request, id: int):
                             style="margin-bottom:8px;display:flex;align-items:center;justify-content:center;"
                         ) for row in range(7)
                     ],
+                    
                     # Submit button
                     Div(
                         Button(
@@ -621,11 +620,27 @@ def seats_page(request, id: int):
                         ),
                         style="margin-top:20px;text-align:center;"
                     ),
+                    
                     action=f"/book-seats/{found_showtime.id}",
                     method="post",
+                    onsubmit="return validateSeats(event)",
                     style="max-width:600px;margin:0 auto;"
                 ),
-                # Improved CSS for interactive seat selection - keep exactly the same as your original
+                
+                # JavaScript validation
+                Script("""
+                    function validateSeats(event) {
+                        const selectedSeats = document.querySelectorAll('input[name="seats"]:checked');
+                        if (selectedSeats.length === 0) {
+                            alert('Please select at least one seat to continue.');
+                            event.preventDefault();
+                            return false;
+                        }
+                        return true;
+                    }
+                """),
+                
+                # Seat styles
                 Style("""
                     .seat-label {
                         display: inline-block;
@@ -670,6 +685,7 @@ def seats_page(request, id: int):
                         transform: scale(1.1);
                     }
                 """),
+                
                 style="padding:20px;max-width:800px;margin:0 auto;"
             ),
             request=request
@@ -678,53 +694,14 @@ def seats_page(request, id: int):
 
 @rt('/book-seats/{showtime_id}', methods=["POST"])
 def book_seats_post(request, showtime_id: int, seats: List[str] = Form([])):
-    # First check for empty seats
+    # First check for empty seats with stronger validation
     if not seats or len(seats) == 0:
-        return Titled(
-            "No Seats Selected",
-            *create_page_structure(
-                Container(
-                    H1("No Seats Selected", style="text-align:center;color:#f44336;margin-bottom:30px;"),
-                    P("Please select at least one seat to continue.", style="text-align:center;margin-bottom:30px;"),
-                    A("Back to Seat Selection", href=f"/seats/{showtime_id}", 
-                      style="display:inline-block;background-color:#4CAF50;color:white;padding:10px 15px;text-decoration:none;border-radius:4px;margin-top:20px;text-align:center;"),
-                    style="padding:30px;max-width:600px;margin:0 auto;background-color:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
-                ),
-                request=request
-            )
+        return RedirectResponse(
+            url=f"/seats/{showtime_id}?error=no_seats",
+            status_code=303
         )
     
-    # Validate seat format and existence
-    valid_rows = [chr(65+i) for i in range(7)]  # A through G
-    valid_numbers = range(1, 11)  # 1 through 10
-    invalid_seats = []
-    
-    for seat in seats:
-        if (len(seat) < 2 or 
-            seat[0] not in valid_rows or 
-            not seat[1:].isdigit() or 
-            int(seat[1:]) not in valid_numbers):
-            invalid_seats.append(seat)
-    
-    if invalid_seats:
-        return Titled(
-            "Invalid Seats Selected",
-            *create_page_structure(
-                Container(
-                    H1("Invalid Seats Selected", style="text-align:center;color:#f44336;margin-bottom:30px;"),
-                    P(f"The following seats are invalid: {', '.join(invalid_seats)}", 
-                      style="text-align:center;margin-bottom:15px;"),
-                    P("Please select only valid seats from the seating chart.", 
-                      style="text-align:center;margin-bottom:30px;"),
-                    A("Back to Seat Selection", href=f"/seats/{showtime_id}", 
-                      style="display:inline-block;background-color:#4CAF50;color:white;padding:10px 15px;text-decoration:none;border-radius:4px;margin-top:20px;text-align:center;"),
-                    style="padding:30px;max-width:600px;margin:0 auto;background-color:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
-                ),
-                request=request
-            )
-        )
-    
-    # Check if user is logged in at booking time
+    # Check if user is logged in
     customer_id = request.cookies.get("customer_id")
     if not customer_id:
         # User is not logged in - store seats in the redirect URL
@@ -755,24 +732,20 @@ def book_seats_post(request, showtime_id: int, seats: List[str] = Form([])):
             break
     
     if not found_showtime:
-        return Container(
-            H1("Error"),
-            P("Showtime not found"),
-            A("Back to Homepage", href="/")
+        return Titled(
+            "Error",
+            *create_page_structure(
+                Container(
+                    H1("Error", style="color:red;text-align:center;"),
+                    P("Showtime not found!", style="text-align:center;"),
+                    A("Back to Homepage", href="/", 
+                      style="display:block;text-align:center;margin-top:20px;color:#4CAF50;")
+                ),
+                request=request
+            )
         )
     
-    if not seats or len(seats) == 0:
-        return Container(
-            H1("No Seats Selected"),
-            P("Please select at least one seat to continue."),
-            A("Back to Seat Selection", href=f"/seats/{showtime_id}", 
-              style="display:inline-block;background-color:#4CAF50;color:white;padding:10px 15px;text-decoration:none;border-radius:4px;margin-top:20px;")
-        )
-    
-    # Use the logged in customer
-    customer = found_customer
-    
-    # Calculate price (simple example)
+    # Calculate price
     price_per_seat = 10.0  # Basic price
     total_price = len(seats) * price_per_seat
     
@@ -785,17 +758,17 @@ def book_seats_post(request, showtime_id: int, seats: List[str] = Form([])):
     # Create new booking
     new_booking = Booking(
         booking_id=booking_id,
-        customer=customer,
+        customer=found_customer,
         showtime=found_showtime,
         seats=seats,
         timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         status="Pending",
-        total_price=total_price  # Now total_price is defined before being used here
+        total_price=total_price
     )
     
     # Add booking to controller
     booking_controller.bookings.append(new_booking)
-
+    
     # Create seat bookings
     if not hasattr(booking_controller, 'seat_bookings'):
         booking_controller.seat_bookings = []
@@ -809,73 +782,171 @@ def book_seats_post(request, showtime_id: int, seats: List[str] = Form([])):
         )
         booking_controller.seat_bookings.append(seat_booked)
     
+    # Redirect to food selection
+    return RedirectResponse(
+        url=f"/select-food/{booking_id}",
+        status_code=303
+    )
+
+@rt('/select-food/{booking_id}')
+def get(request, booking_id: str):
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
     
-    # Show payment options
-    return Container(
-        H1("Booking Confirmation", style="text-align:center;color:#333;margin-bottom:30px;"),
-        
-        # Movie and showtime details
-        Div(
-            H2(f"{found_showtime.movie.name}", style="margin-bottom:15px;color:#333;"),
-            
-            # Movie poster
-            Div(
-                Img(src=found_showtime.movie.image_url, 
-                    alt=f"{found_showtime.movie.name} poster",
-                    style="width:200px;height:auto;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2);"),
-                style="text-align:center;margin-bottom:20px;"
-            ),
-            
-            # Booking details
-            Div(
-                P(f"Date: {datetime.now().strftime('%Y-%m-%d')}", style="margin:8px 0;"),
-                P(f"Time: {found_showtime.time}", style="margin:8px 0;"),
-                P(f"Theater: {found_showtime.theater.name}", style="margin:8px 0;"),
-                P(f"Seats: {', '.join(seats)}", style="margin:8px 0;"),
-                P(f"Total Price: ${total_price:.2f}", style="margin:8px 0;font-weight:bold;color:#4CAF50;font-size:18px;"),
-                style="background-color:#f8f8f8;padding:20px;border-radius:8px;margin-bottom:30px;"
-            ),
-            
-            style="margin-bottom:30px;"
-        ),
-        
-        # Payment options
-        H3("Choose Payment Method", style="text-align:center;margin-bottom:20px;"),
-        Form(
-            # Credit card option
-            Div(
-                Input(type="radio", id="card", name="payment_method", value="card", checked="checked"),
-                Label("Credit/Debit Card", for_="card", style="margin-left:10px;"),
-                style="margin:15px 0;padding:15px;background-color:#f9f9f9;border-radius:5px;border:1px solid #ddd;"
-            ),
-            
-            # QR code option
-            Div(
-                Input(type="radio", id="qrcode", name="payment_method", value="qrcode"),
-                Label("QR Code Payment", for_="qrcode", style="margin-left:10px;"),
-                style="margin:15px 0;padding:15px;background-color:#f9f9f9;border-radius:5px;border:1px solid #ddd;"
-            ),
-            
-            # Hidden fields to pass booking info
-            Input(type="hidden", name="booking_id", value=booking_id),
-            Input(type="hidden", name="amount", value=str(total_price)),
-            
-            # Submit button
-            Div(
-                Button(
-                    "Continue to Payment", 
-                    type="submit",
-                    style="background-color:#4CAF50;color:white;padding:12px 30px;border:none;border-radius:4px;cursor:pointer;font-size:16px;width:100%;"
+    if not booking:
+        return Titled(
+            "Error",
+            *create_page_structure(
+                Container(
+                    H1("Error", style="color:red;text-align:center;"),
+                    P("Booking not found!", style="text-align:center;"),
+                    A("Back to Homepage", href="/", 
+                      style="display:block;text-align:center;margin-top:20px;color:#4CAF50;")
                 ),
-                style="margin-top:30px;"
+                request=request
+            )
+        )
+    
+    return Titled(
+        "Add Food & Beverages - CE ISAN HOUSE",
+        *create_page_structure(
+            Container(
+                H1("Add Food & Beverages", style="text-align:center;margin-bottom:30px;"),
+                
+                # Booking summary
+                Div(
+                    H3("Booking Summary", style="margin-bottom:15px;"),
+                    P(f"Movie: {booking.showtime.movie.name}", style="margin:5px 0;"),
+                    P(f"Time: {booking.showtime.time}", style="margin:5px 0;"),
+                    P(f"Seats: {', '.join(booking.seats)}", style="margin:5px 0;"),
+                    P(f"Ticket Total: ${booking.total_price:.2f}", style="margin:5px 0;"),
+                    style="background-color:#f8f8f8;padding:15px;border-radius:8px;margin-bottom:30px;"
+                ),
+                
+                # Food selection form
+                Form(
+                    H3("Select Your Food & Beverages", style="margin-bottom:20px;"),
+                    
+                    # Food items
+                    *[
+                        Div(
+                            Div(
+                                H4(food.name, style="margin:0;"),
+                                P(food.description, style="color:#666;margin:5px 0;"),
+                                P(f"${food.price:.2f}", style="font-weight:bold;color:#4CAF50;margin:5px 0;"),
+                                style="flex:1;"
+                            ),
+                            Div(
+                                Input(
+                                    type="number",
+                                    name=f"food_{food.food_id}",
+                                    value="0",
+                                    min="0",
+                                    max=str(food.quantity),
+                                    style="width:60px;padding:5px;border:1px solid #ddd;border-radius:4px;"
+                                ),
+                                style="margin-left:15px;"
+                            ),
+                            style="display:flex;align-items:center;padding:15px;background-color:#f9f9f9;border-radius:8px;margin-bottom:10px;"
+                        ) for food in booking_controller.food_list if food.is_available
+                    ],
+                    
+                    # Hidden booking ID
+                    Input(type="hidden", name="booking_id", value=booking_id),
+                    
+                    # Buttons
+                    Div(
+                        Button(
+                            "Continue to Payment", 
+                            type="submit",
+                            style="background-color:#4CAF50;color:white;padding:12px 30px;border:none;border-radius:4px;cursor:pointer;font-size:16px;margin-right:15px;"
+                        ),
+                        # Fix: Changed to href with payment method parameters for "Skip Food Selection" 
+                        A(
+                            "Skip Food Selection",
+                            href=f"/payment?booking_id={booking_id}&amount={booking.total_price}",
+                            style="display:inline-block;background-color:#999;color:white;padding:12px 30px;text-decoration:none;border-radius:4px;font-size:16px;"
+                        ),
+                        style="margin-top:30px;text-align:center;"
+                    ),
+                    
+                    action="/process-food-selection",
+                    method="post",
+                    style="max-width:600px;margin:0 auto;"
+                ),
+                
+                style="max-width:800px;margin:0 auto;padding:30px;background-color:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
             ),
-            
-            action="/process-payment",
-            method="post",
-            style="max-width:500px;margin:0 auto;"
-        ),
+            request=request
+        )
+    )
+
+@rt('/process-food-selection', methods=["POST"])
+def process_food_selection(request, booking_id: str = Form(...)):
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
+    
+    if not booking:
+        return RedirectResponse(url="/", status_code=303)
+    
+    # First save the original ticket price
+    ticket_price = booking.total_price
+    food_total = 0
+    food_orders = []
+    
+    try:
+        # Get form data without accessing ._dict property
+        form_data = dict(request.form())
         
-        style="padding:30px;max-width:800px;margin:0 auto;background-color:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
+        # Process each food item
+        for key, value in form_data.items():
+            if key.startswith('food_') and value.isdigit() and int(value) > 0:
+                food_id = key.replace('food_', '')
+                quantity = int(value)
+                
+                # Find food item
+                food_item = None
+                for food in booking_controller.food_list:
+                    if str(food.food_id) == str(food_id):
+                        food_item = food
+                        break
+                
+                if food_item and food_item.is_available and quantity <= food_item.quantity:
+                    subtotal = food_item.price * quantity
+                    food_total += subtotal
+                    
+                    # Create food order with the proper structure
+                    food_order = FoodOrder(food_item, quantity)
+                    food_orders.append(food_order)
+                    
+    except Exception as e:
+        print(f"Error processing food selection: {str(e)}")
+    
+    # Store food orders in booking
+    booking.food_orders = food_orders
+    
+    # Calculate grand total (tickets + food)
+    total_amount = ticket_price + food_total
+    
+    # Store the ticket price and food total separately in the booking object
+    # This avoids issues with read-only properties
+    booking.ticket_price = ticket_price  # Original ticket price
+    booking.food_total = food_total      # Food total
+    
+    # Redirect to payment page with correct combined total
+    return RedirectResponse(
+        url=f"/payment?booking_id={booking_id}&amount={total_amount}",
+        status_code=303
     )
 
 @rt('/complete-booking/{showtime_id}')
@@ -1387,6 +1458,7 @@ def refund_page(request, booking_id: str):
             request=request
         )
     )
+
 
 @rt('/process-refund', methods=["POST"])
 def process_refund(booking_id: str = Form(...)):
@@ -1933,13 +2005,34 @@ def history_page(request=None):
 
 @rt("/payment")
 def payment_page(request=None, booking_id: str = "", amount: str = ""):
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
+    
+    if not booking:
+        return Titled(
+            "Error",
+            *create_page_structure(
+                Container(
+                    H1("Error", style="color:red;text-align:center;"),
+                    P("Booking not found!", style="text-align:center;"),
+                    A("Back to Homepage", href="/", 
+                      style="display:block;text-align:center;margin-top:20px;color:#4CAF50;")
+                ),
+                request=request
+            )
+        )
+    
     return Titled(
         "Payment Options - CE ISAN HOUSE",
         *create_page_structure(
             Container(
                 H1("Select Payment Method", style="text-align:center;margin-bottom:30px;"),
                 
-                # Booking details summary
                 Div(
                     H3("Booking Details", style="margin-bottom:15px;"),
                     P(f"Booking ID: {booking_id}", style="margin:5px 0;"),
@@ -1947,27 +2040,19 @@ def payment_page(request=None, booking_id: str = "", amount: str = ""):
                     style="background-color:#f8f8f8;padding:15px;border-radius:8px;margin-bottom:30px;"
                 ),
                 
-                # Payment method selection
                 Form(
-                    # Credit card option
                     Div(
                         Input(type="radio", id="card", name="payment_method", value="card", checked="checked"),
                         Label("Credit/Debit Card", for_="card", style="margin-left:10px;"),
                         style="margin:15px 0;padding:15px;background-color:#f9f9f9;border-radius:5px;border:1px solid #ddd;cursor:pointer;"
                     ),
-                    
-                    # QR code option
                     Div(
                         Input(type="radio", id="qrcode", name="payment_method", value="qrcode"),
                         Label("QR Code Payment", for_="qrcode", style="margin-left:10px;"),
                         style="margin:15px 0;padding:15px;background-color:#f9f9f9;border-radius:5px;border:1px solid #ddd;cursor:pointer;"
                     ),
-                    
-                    # Hidden fields to pass booking info
                     Input(type="hidden", name="booking_id", value=booking_id),
                     Input(type="hidden", name="amount", value=amount),
-                    
-                    # Submit button
                     Div(
                         Button(
                             "Continue to Payment", 
@@ -1992,16 +2077,38 @@ def payment_page(request=None, booking_id: str = "", amount: str = ""):
 def process_payment_method(payment_method: str = Form(...), booking_id: str = Form(...), amount: str = Form(...)):
     if payment_method == "card":
         return RedirectResponse(url=f"/card-payment?booking_id={booking_id}&amount={amount}", status_code=303)
-    else:  # QR Code
+    else:
         return RedirectResponse(url=f"/qrcode-payment?booking_id={booking_id}&amount={amount}", status_code=303)
 
 @rt("/card-payment")
 def card_payment_page(request, booking_id: str = "", amount: str = ""):
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
+    
+    if not booking:
+        return Titled(
+            "Error",
+            *create_page_structure(
+                Container(
+                    H1("Error", style="color:red;text-align:center;"),
+                    P("Booking not found!", style="text-align:center;"),
+                    A("Back to Homepage", href="/", 
+                      style="display:block;text-align:center;margin-top:20px;color:#4CAF50;")
+                ),
+                request=request
+            )
+        )
+    
     return Titled(
-        "Credit Card Payment - CE ISAN HOUSE",
+        "Card Payment - CE ISAN HOUSE",
         *create_page_structure(
             Container(
-                H1("Credit Card Payment", style="text-align:center;margin-bottom:30px;"),
+                H1("Card Payment", style="text-align:center;margin-bottom:30px;"),
                 
                 # Booking details summary
                 Div(
@@ -2013,52 +2120,57 @@ def card_payment_page(request, booking_id: str = "", amount: str = ""):
                 
                 # Credit card form
                 Form(
+                    # Card details
+                    H3("Enter Card Details", style="margin-bottom:20px;"),
+                    
                     Div(
-                        Label("Card Number", for_="card_number", style="display:block;margin-bottom:5px;font-weight:bold;"),
-                        Input(type="text", id="card_number", name="card_number", placeholder="xxxx xxxx xxxx xxxx", 
-                              required="required", style="width:100%;padding:10px;margin-bottom:20px;border:1px solid #ddd;border-radius:4px;"),
-                    ),
-                    Div(
-                        Label("Cardholder Name", for_="cardholder", style="display:block;margin-bottom:5px;font-weight:bold;"),
-                        Input(type="text", id="cardholder", name="cardholder", placeholder="Name as it appears on card", 
-                              required="required", style="width:100%;padding:10px;margin-bottom:20px;border:1px solid #ddd;border-radius:4px;"),
-                    ),
-                    Div(
-                        # Row for expiry and CVV
-                        Div(
-                            Div(
-                                Label("Expiry Date", for_="expiry", style="display:block;margin-bottom:5px;font-weight:bold;"),
-                                Input(type="text", id="expiry", name="expiry", placeholder="MM/YY", 
-                                      required="required", style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;"),
-                                style="flex:1;margin-right:10px;"
-                            ),
-                            Div(
-                                Label("CVV", for_="cvv", style="display:block;margin-bottom:5px;font-weight:bold;"),
-                                Input(type="text", id="cvv", name="cvv", placeholder="123", 
-                                      required="required", style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;"),
-                                style="flex:1;"
-                            ),
-                            style="display:flex;margin-bottom:20px;"
-                        )
+                        Label("Card Number", for_="card_number", style="display:block;margin-bottom:5px;"),
+                        Input(type="text", id="card_number", name="card_number", 
+                              placeholder="1234 5678 9012 3456", required="required",
+                              style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;"),
+                        style="margin-bottom:15px;"
                     ),
                     
-                    # Hidden fields to pass booking info
+                    Div(
+                        Div(
+                            Label("Expiration Date", for_="exp_date", style="display:block;margin-bottom:5px;"),
+                            Input(type="text", id="exp_date", name="exp_date", 
+                                  placeholder="MM/YY", required="required",
+                                  style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;"),
+                            style="flex:1;margin-right:10px;"
+                        ),
+                        Div(
+                            Label("CVC", for_="cvc", style="display:block;margin-bottom:5px;"),
+                            Input(type="text", id="cvc", name="cvc", 
+                                  placeholder="123", required="required",
+                                  style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;"),
+                            style="flex:1;"
+                        ),
+                        style="display:flex;margin-bottom:15px;"
+                    ),
+                    
+                    Div(
+                        Label("Cardholder Name", for_="name", style="display:block;margin-bottom:5px;"),
+                        Input(type="text", id="name", name="name", 
+                              placeholder="John Doe", required="required",
+                              style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;"),
+                        style="margin-bottom:25px;"
+                    ),
+                    
+                    # Hidden fields
                     Input(type="hidden", name="booking_id", value=booking_id),
                     Input(type="hidden", name="amount", value=amount),
                     
                     # Submit button
                     Div(
-                        Button(
-                            "Pay Now", 
-                            type="submit",
-                            style="background-color:#4CAF50;color:white;padding:12px 30px;border:none;border-radius:4px;cursor:pointer;font-size:16px;width:100%;"
-                        ),
-                        style="margin-top:30px;"
+                        Button("Complete Payment", type="submit", 
+                               style="background-color:#4CAF50;color:white;padding:12px 0;border:none;border-radius:4px;cursor:pointer;font-size:16px;width:100%;"),
+                        style="margin-top:15px;"
                     ),
                     
-                    action="/process-card-payment",
+                    action="/verify-card-payment",
                     method="post",
-                    style="max-width:500px;margin:0 auto;"
+                    style="max-width:400px;margin:0 auto;"
                 ),
                 
                 # Back link
@@ -2076,17 +2188,37 @@ def card_payment_page(request, booking_id: str = "", amount: str = ""):
 
 @rt("/qrcode-payment")
 def qrcode_payment_page(request, booking_id: str = "", amount: str = ""):
-    # Generate QR code for this payment
-    qr_data = f"CEIsanHouse:Payment:{booking_id}:{amount}"
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
     
-    # Create QR code image
+    if not booking:
+        return Titled(
+            "Error",
+            *create_page_structure(
+                Container(
+                    H1("Error", style="color:red;text-align:center;"),
+                    P("Booking not found!", style="text-align:center;"),
+                    A("Back to Homepage", href="/", 
+                      style="display:block;text-align:center;margin-top:20px;color:#4CAF50;")
+                ),
+                request=request
+            )
+        )
+    
+    # Generate QR code
+    import qrcode
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
         border=4,
     )
-    qr.add_data(qr_data)
+    qr.add_data(f"CE-ISAN-HOUSE-PAYMENT:{booking_id}:{amount}")
     qr.make(fit=True)
     
     img = qr.make_image(fill_color="black", back_color="white")
@@ -2128,13 +2260,9 @@ def qrcode_payment_page(request, booking_id: str = "", amount: str = ""):
                     style="background-color:#f9f9f9;padding:20px;border-radius:8px;margin-bottom:30px;"
                 ),
                 
-                # Form to verify payment
                 Form(
-                    # Hidden fields to pass booking info
                     Input(type="hidden", name="booking_id", value=booking_id),
                     Input(type="hidden", name="amount", value=amount),
-                    
-                    # Submit button
                     Div(
                         Button(
                             "I've Completed the Payment", 
@@ -2149,7 +2277,6 @@ def qrcode_payment_page(request, booking_id: str = "", amount: str = ""):
                     style="max-width:500px;margin:0 auto;"
                 ),
                 
-                # Back link
                 Div(
                     A("← Back to Payment Methods", href=f"/payment?booking_id={booking_id}&amount={amount}", 
                       style="color:#333;text-decoration:none;"),
@@ -2197,9 +2324,11 @@ def process_card_payment(booking_id: str = Form(...), amount: str = Form(...),
     # Generate receipt and confirmation
     return receipt_page(booking_id, amount, "card", cardholder)
 
-@rt("/verify-qr-payment", methods=["POST"])
-def verify_qr_payment(booking_id: str = Form(...), amount: str = Form(...)):
-    # Find booking with this ID
+@rt("/verify-card-payment", methods=["POST"])
+def verify_card_payment(request, booking_id: str = Form(...), amount: str = Form(...), 
+                      card_number: str = Form(...), exp_date: str = Form(...), 
+                      cvc: str = Form(...), name: str = Form(...)):
+    # Find the booking
     booking = None
     if hasattr(booking_controller, 'bookings'):
         for b in booking_controller.bookings:
@@ -2208,64 +2337,25 @@ def verify_qr_payment(booking_id: str = Form(...), amount: str = Form(...)):
                 break
     
     if not booking:
-        return Titled(
-            "Error",
-            *create_page_structure(
-                Container(
-                    H1("Error", style="color:red;text-align:center;"),
-                    P("Booking not found!", style="text-align:center;"),
-                    A("Back to Homepage", href="/", 
-                      style="display:block;text-align:center;margin-top:20px;color:#4CAF50;")
-                ),
-                request=None
-            )
-        )
+        return RedirectResponse(url="/", status_code=303)
     
-    # In a real system, you'd check with a payment gateway if the payment was received
-    # For this demo, we'll simulate a successful payment
-    
-    # Update booking status
+    # In a real system, you would validate the card and process payment
+    # For this demo, we'll just mark the booking as confirmed
     booking.status = "Confirmed"
     
-    # Generate receipt and confirmation
-    return receipt_page(booking_id, amount, "qrcode", "QR Code Payment")
-
-def receipt_page(booking_id, amount, payment_method, payment_detail):
-    # Find booking with this ID
-    booking = None
-    if hasattr(booking_controller, 'bookings'):
-        for b in booking_controller.bookings:
-            if b.booking_id == booking_id:
-                booking = b
-                break
-    
-    if not booking:
-        return Titled(
-            "Error",
-            *create_page_structure(
-                Container(
-                    H1("Error", style="color:red;text-align:center;"),
-                    P("Booking not found!", style="text-align:center;"),
-                    A("Back to Homepage", href="/", 
-                      style="display:block;text-align:center;margin-top:20px;color:#4CAF50;")
-                ),
-                request=None
-            )
-        )
-    
     # Generate a transaction ID
-    transaction_id = f"TXN{booking_id}"
+    transaction_id = f"TXN{booking.booking_id}"
     
+    # Render receipt page
     return Titled(
-        "Payment Successful",
+        "Payment Successful - CE ISAN HOUSE",
         *create_page_structure(
             Container(
                 H1("Payment Successful!", style="text-align:center;color:#4CAF50;margin-bottom:30px;"),
                 
-                # Payment receipt
+                # Receipt details
                 Div(
                     H2("Receipt", style="text-align:center;margin-bottom:20px;"),
-                    
                     P(f"Booking ID: {booking_id}", style="margin:8px 0;"),
                     P(f"Movie: {booking.showtime.movie.name}", style="margin:8px 0;"),
                     P(f"Date: {datetime.now().strftime('%Y-%m-%d')}", style="margin:8px 0;"),
@@ -2273,74 +2363,112 @@ def receipt_page(booking_id, amount, payment_method, payment_detail):
                     P(f"Theater: {booking.showtime.theater.name}", style="margin:8px 0;"),
                     P(f"Seats: {', '.join(booking.seats)}", style="margin:8px 0;"),
                     P(f"Amount Paid: ${amount}", style="margin:8px 0;font-weight:bold;"),
-                    P(f"Payment Method: {payment_method.capitalize()}", style="margin:8px 0;"),
-                    P(f"Payment Details: {payment_detail}", style="margin:8px 0;"),
+                    P(f"Payment Method: Card", style="margin:8px 0;"),
+                    P(f"Card Number: ****{card_number[-4:]}", style="margin:8px 0;"),
                     P(f"Transaction ID: {transaction_id}", style="margin:8px 0;"),
                     P(f"Payment Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", style="margin:8px 0;"),
-                    
                     style="background-color:#f9f9f9;padding:20px;border-radius:8px;margin-bottom:30px;border:1px solid #ddd;"
                 ),
                 
-                # Success message and links
+                # E-ticket section - create a simple QR code placeholder
                 Div(
-                    P("Your booking is confirmed! A confirmation email has been sent to your registered email address.", 
-                      style="text-align:center;margin-bottom:30px;"),
-                    
-                    # Optional: Display QR code for ticket
+                    H3("Your E-Ticket", style="text-align:center;margin-bottom:15px;"),
+                    P("Scan this QR code at the cinema.", 
+                      style="text-align:center;margin-bottom:20px;"),
                     Div(
-                        H3("Your E-Ticket", style="text-align:center;margin-bottom:15px;"),
-                        P("Scan this QR code at the cinema to gain entry.", 
-                          style="text-align:center;margin-bottom:20px;"),
-                        
-                        # Generate QR code for ticket
-                        Div(
-                            Img(src=generate_ticket_qr(booking_id), 
-                                alt="Ticket QR Code",
-                                style="max-width:200px;margin:0 auto;display:block;"),
-                            style="text-align:center;margin-bottom:30px;"
-                        ),
-                        style="background-color:#f0f8ff;padding:20px;border-radius:8px;margin-bottom:30px;border:1px solid #cce5ff;"
+                        Img(src=f"https://api.qrserver.com/v1/create-qr-code/?data=CEIsanHouse-Ticket-{booking_id}&size=200x200", 
+                            alt="Ticket QR Code",
+                            style="max-width:200px;margin:0 auto;display:block;"),
+                        style="text-align:center;margin-bottom:30px;"
                     ),
-                    
-                    Div(
-                        A("View My Bookings", href="/profile", 
-                          style="display:inline-block;background-color:#4CAF50;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;margin-right:15px;"),
-                        A("Back to Homepage", href="/", 
-                          style="display:inline-block;background-color:#333;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;"),
-                        style="text-align:center;"
-                    ),
+                    style="background-color:#f0f8ff;padding:20px;border-radius:8px;margin-bottom:30px;border:1px solid #cce5ff;"
+                ),
+                
+                # Navigation buttons
+                Div(
+                    A("View My Bookings", href="/profile", 
+                      style="display:inline-block;background-color:#4CAF50;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;margin-right:15px;"),
+                    A("Back to Homepage", href="/", 
+                      style="display:inline-block;background-color:#333;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;"),
+                    style="text-align:center;"
                 ),
                 
                 style="max-width:600px;margin:0 auto;padding:30px;background-color:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
             ),
-            request=None
+            request=request
         )
     )
 
-def generate_ticket_qr(booking_id):
-    """Generate QR code for ticket and return as base64 data URL"""
-    # Create QR code with ticket data
-    qr_data = f"CEIsanHouse:Ticket:{booking_id}:{datetime.now().strftime('%Y%m%d')}"
+@rt("/verify-qr-payment", methods=["POST"])
+def verify_qr_payment(request, booking_id: str = Form(...), amount: str = Form(...)):
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
     
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
+    if not booking:
+        return RedirectResponse(url="/", status_code=303)
+    
+    # In a real system, you would verify QR payment status
+    # For this demo, we'll just mark the booking as confirmed
+    booking.status = "Confirmed"
+    
+    # Generate a transaction ID
+    transaction_id = f"TXN{booking.booking_id}"
+    
+    # Render receipt page
+    return Titled(
+        "Payment Successful - CE ISAN HOUSE",
+        *create_page_structure(
+            Container(
+                H1("Payment Successful!", style="text-align:center;color:#4CAF50;margin-bottom:30px;"),
+                
+                # Receipt details
+                Div(
+                    H2("Receipt", style="text-align:center;margin-bottom:20px;"),
+                    P(f"Booking ID: {booking_id}", style="margin:8px 0;"),
+                    P(f"Movie: {booking.showtime.movie.name}", style="margin:8px 0;"),
+                    P(f"Date: {datetime.now().strftime('%Y-%m-%d')}", style="margin:8px 0;"),
+                    P(f"Time: {booking.showtime.time}", style="margin:8px 0;"),
+                    P(f"Theater: {booking.showtime.theater.name}", style="margin:8px 0;"),
+                    P(f"Seats: {', '.join(booking.seats)}", style="margin:8px 0;"),
+                    P(f"Amount Paid: ${amount}", style="margin:8px 0;font-weight:bold;"),
+                    P(f"Payment Method: QR Code", style="margin:8px 0;"),
+                    P(f"Transaction ID: {transaction_id}", style="margin:8px 0;"),
+                    P(f"Payment Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", style="margin:8px 0;"),
+                    style="background-color:#f9f9f9;padding:20px;border-radius:8px;margin-bottom:30px;border:1px solid #ddd;"
+                ),
+                
+                # E-ticket section - create a simple QR code placeholder
+                Div(
+                    H3("Your E-Ticket", style="text-align:center;margin-bottom:15px;"),
+                    P("Scan this QR code at the cinema.", 
+                      style="text-align:center;margin-bottom:20px;"),
+                    Div(
+                        Img(src=f"https://api.qrserver.com/v1/create-qr-code/?data=CEIsanHouse-Ticket-{booking_id}&size=200x200", 
+                            alt="Ticket QR Code",
+                            style="max-width:200px;margin:0 auto;display:block;"),
+                        style="text-align:center;margin-bottom:30px;"
+                    ),
+                    style="background-color:#f0f8ff;padding:20px;border-radius:8px;margin-bottom:30px;border:1px solid #cce5ff;"
+                ),
+                
+                # Navigation buttons
+                Div(
+                    A("View My Bookings", href="/profile", 
+                      style="display:inline-block;background-color:#4CAF50;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;margin-right:15px;"),
+                    A("Back to Homepage", href="/", 
+                      style="display:inline-block;background-color:#333;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;"),
+                    style="text-align:center;"
+                ),
+                
+                style="max-width:600px;margin:0 auto;padding:30px;background-color:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
+            ),
+            request=request
+        )
     )
-    qr.add_data(qr_data)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="black", back_color="white")
-    
-    # Save to BytesIO
-    import io
-    from base64 import b64encode
-    
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    qr_image_b64 = b64encode(buffer.getvalue()).decode('utf-8')
-    
-    return f"data:image/png;base64,{qr_image_b64}"
 
 serve()
