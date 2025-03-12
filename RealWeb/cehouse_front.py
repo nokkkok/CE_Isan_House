@@ -157,6 +157,8 @@ def create_instance():
     # Add theaters
     theater1 = Theater("Theater 1")
     theater2 = Theater("Theater 2")
+    theater3 = Theater("Theater 3")
+    booking_controller.append_theater(theater3)
     booking_controller.append_theater(theater1)
     booking_controller.append_theater(theater2)
 
@@ -166,6 +168,11 @@ def create_instance():
     movie2.add_showtime(Showtime(movie2, "16:45", theater2))
     movie3.add_showtime(Showtime(movie3, "19:00", theater1))
     movie4.add_showtime(Showtime(movie4, "21:00", theater2))
+    movie5.add_showtime(Showtime(movie4, "13:00", theater2))
+    movie5.add_showtime(Showtime(movie4, "21:00", theater3))
+    movie6.add_showtime(Showtime(movie4, "13:00", theater1))
+    movie7.add_showtime(Showtime(movie4, "15:30", theater3))
+    movie8.add_showtime(Showtime(movie4, "14:30", theater2))
 
     # Add customers
     customer1 = Customer("C001", "John Doe", "john@example.com", "john123456@")
@@ -176,11 +183,10 @@ def create_instance():
     # Add foods
     food1 = Food("F001", "Popcorn", "Large popcorn", 5.0, 100)
     food2 = Food("F002", "Soda", "Cold soda", 3.0, 100)
-    food3 = Food("F003", "Nachos", "Cheese nachos", 4.5, 50)
+    food3 = Food("F003", "Sausages", "Chesse suasages", 4.5, 50)
     booking_controller.append_food(food1)
     booking_controller.append_food(food2)
     booking_controller.append_food(food3)
-
 
 create_instance()                                 
 # ===============================================================================================
@@ -345,7 +351,7 @@ def homepage(request):  # Changed from 'get' to 'homepage'
         )
     )
 
-
+#Showtime each movie
 @rt('/showtime/{id}')
 def showtime_page(id: int, request=None):
     movie = next((st for st in booking_controller.movie_list if st.movie_id == id), None)
@@ -435,6 +441,7 @@ def showtime_page(id: int, request=None):
         )
     )
 
+#Showtime all on hamburger menu
 @rt('/showtimeall')
 def all_showtimes(request=None):
     # Collect all movies with their showtimes
@@ -506,6 +513,7 @@ def all_showtimes(request=None):
         )
     )
 
+#seat selection page
 @rt('/seats/{id}')
 def seats_page(request, id: int):
     # Get error parameter from URL if present
@@ -704,6 +712,7 @@ def seats_page(request, id: int):
         )
     )
 
+# Route to process seat booking
 @rt('/book-seats/{showtime_id}', methods=["POST"])
 def book_seats_post(request, showtime_id: int, seats: List[str] = Form([])):
     # First check for empty seats with stronger validation
@@ -908,6 +917,7 @@ def select_food(request, booking_id: str):
         )
     )
 
+# Route to process food selection
 @rt('/process-food-selection', methods=["POST"])
 async def process_food_selection(request):
     # Get form data using the async form method
@@ -1013,7 +1023,7 @@ def extract_form_value(form_obj, default="0"):
     
     return default
 
-
+# Route to display payment page
 @rt('/complete-booking/{showtime_id}')
 def complete_booking(request, showtime_id: int, seats: str = ""):
     # Split the seats string back into a list and check immediately
@@ -1209,6 +1219,7 @@ def complete_booking(request, showtime_id: int, seats: str = ""):
         )
     )
 
+# Route to process payment
 @rt('/process-payment', methods=["POST"])
 def process_payment(booking_id: str = Form(...), payment_method: str = Form(...), amount: str = Form(...)):
     # Redirect to the appropriate payment method page based on selection
@@ -1247,6 +1258,7 @@ def search(request, search: str = ""):  # Changed from 'get' to 'search'
         )
     )
 
+# Route to display card payment page
 @rt('/contact')
 def contact_page(request=None):
     return Titled(
@@ -1322,6 +1334,7 @@ def contact_page(request=None):
         )
     )
 
+# Route to process contact form submission
 @rt('/contact-submit', methods=["POST"])
 def contact_submit(name: str = Form(...), email: str = Form(...), subject: str = Form(...), message: str = Form(...)):
     # In a real application, you would save this to a database or send an email
@@ -1344,7 +1357,7 @@ def contact_submit(name: str = Form(...), email: str = Form(...), subject: str =
         )
     )
 
-
+# Route to profile
 @rt('/profile')
 def profile_page(request):
     message = request.query_params.get("message") if hasattr(request, "query_params") else None
@@ -1493,6 +1506,7 @@ def profile_page(request):
         )
     )
 
+# Route to upgrade to member page
 @rt('/upgrade-to-member')
 def upgrade_to_member_page(request):
     # Get customer ID from cookies
@@ -1637,6 +1651,7 @@ async def process_member_upgrade(request):
     # Redirect to profile with success message
     return RedirectResponse(url="/profile?message=upgrade_success", status_code=303)
 
+# Route to history page
 @rt("/history")
 def history_page(request=None):
     # Check if user is logged in
@@ -1923,7 +1938,6 @@ def refund_page(request, booking_id: str):
             request=request
         )
     )
-
 
 @rt("/process-refund", methods=["POST"])
 def process_refund(booking_id: str = Form(...)):
@@ -2248,7 +2262,6 @@ def login_post(email: str = Form(...), password: str = Form(...)):
     response.set_cookie(key="customer_id", value=found_customer.customer_id)
     return response
 
-
 # Signup Page Route
 @rt('/signup')
 def get():
@@ -2378,179 +2391,6 @@ def logout_post():  # Renamed to be more specific
     response.status_code = 303
     return response
 
-# Add this route to test customer creation directly
-@rt('/test-customer-create')
-def test_customer():
-    try:
-        # Test Customer class directly
-        test_id = "TEST123"
-        test_name = "Test User"
-        test_email = "test@example.com"
-        test_password = "password123"
-        
-        print(f"Testing Customer creation with {test_id}, {test_name}, {test_email}")
-        test_customer = Customer(test_id, test_name, test_email, test_password)
-        print(f"Customer created: {test_customer}")
-        
-        # Test properties
-        print(f"ID: {test_customer.customer_id}")
-        print(f"Name: {test_customer.name}")
-        print(f"Email: {test_customer.email}")
-        
-        # Test adding to controller
-        booking_controller.append_customer(test_customer)
-        print(f"Added to booking_controller, total customers: {len(booking_controller.customer_list)}")
-        
-        return Container(
-            H1("Customer Creation Test"),
-            P(f"Successfully created customer {test_name}"),
-            P(f"Current customers in system: {len(booking_controller.customer_list)}")
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return Container(
-            H1("Customer Creation Test Failed"),
-            P(f"Error: {str(e)}")
-        )
-    
-### history ###
-@rt("/history")
-def history_page(request=None):
-    # Check if user is logged in
-    customer_id = request.cookies.get("customer_id")
-    if not customer_id:
-        return RedirectResponse(url="/login")
-    
-    # Get all bookings from the booking controller
-    all_bookings = []
-    
-    # Regular bookings
-    if hasattr(booking_controller, 'bookings'):
-        all_bookings.extend(booking_controller.bookings)
-    
-    # Add refunded bookings from history if they exist
-    if hasattr(booking_controller, 'booking_history'):
-        for history_entry in booking_controller.booking_history:
-            if history_entry.get('customer_id') == customer_id:
-                # Create a simplified booking object for display
-                history_booking = type('HistoryBooking', (), {
-                    'booking_id': history_entry.get('booking_id'),
-                    'timestamp': history_entry.get('original_timestamp'),
-                    'refund_timestamp': history_entry.get('refund_timestamp', 'N/A'),
-                    'status': history_entry.get('status'),
-                    'total_price': history_entry.get('amount'),
-                    'seats': history_entry.get('seats', []),
-                    # Create nested objects for compatibility with template
-                    'showtime': type('Showtime', (), {
-                        'movie': type('Movie', (), {
-                            'name': history_entry.get('movie_name')
-                        }),
-                        'time': history_entry.get('showtime'),
-                        'theater': type('Theater', (), {
-                            'name': history_entry.get('theater')
-                        })
-                    })
-                })
-                all_bookings.append(history_booking)
-    
-    # Filter for current user's bookings
-    user_bookings = []
-    for booking in all_bookings:
-        if hasattr(booking, 'customer') and booking.customer and booking.customer.customer_id == customer_id:
-            user_bookings.append(booking)
-        elif getattr(booking, 'booking_id', '').startswith('HISTORY_'):
-            # For history bookings we created above
-            user_bookings.append(booking)
-    
-    # Sort bookings by timestamp (most recent first)
-    # For refunded bookings, use refund_timestamp if available
-    def get_sort_timestamp(booking):
-        if hasattr(booking, 'refund_timestamp') and booking.refund_timestamp != 'N/A':
-            return datetime.strptime(booking.refund_timestamp, "%Y-%m-%d %H:%M:%S")
-        return datetime.strptime(booking.timestamp, "%Y-%m-%d %H:%M:%S")
-    
-    sorted_bookings = sorted(user_bookings, key=get_sort_timestamp, reverse=True)
-
-    return Titled(
-        "Booking History - CE ISAN HOUSE",
-        *create_page_structure(
-            Container(
-                H1("Booking History", style="text-align:center;margin-bottom:30px;"),
-                
-                # Bookings table
-                Div(
-                    Table(
-                        # Table header
-                        Tr(
-                            Th("Booking ID", style="padding:12px;background-color:#f5f5f5;"),
-                            Th("Movie", style="padding:12px;background-color:#f5f5f5;"),
-                            Th("Date & Time", style="padding:12px;background-color:#f5f5f5;"),
-                            Th("Seats", style="padding:12px;background-color:#f5f5f5;"),
-                            Th("Status", style="padding:12px;background-color:#f5f5f5;"),
-                            Th("Total Price", style="padding:12px;background-color:#f5f5f5;"),
-                            style="border-bottom:2px solid #ddd;"
-                        ),
-                        # Table rows
-                        *[
-                            Tr(
-                                Td(booking.booking_id, 
-                                   style="padding:12px;border-bottom:1px solid #eee;"),
-                                Td(booking.showtime.movie.name, 
-                                   style="padding:12px;border-bottom:1px solid #eee;"),
-                                Td(
-                                    Div(
-                                        P(f"Booked: {booking.timestamp}", style="margin:0;"),
-                                        P(f"Refunded: {booking.refund_timestamp}", style="margin:0;color:#FF5722;") 
-                                            if hasattr(booking, 'refund_timestamp') and booking.status == "Refunded" else None,
-                                        style="padding:0;"
-                                    ),
-                                   style="padding:12px;border-bottom:1px solid #eee;"),
-                                Td(", ".join(booking.seats), 
-                                   style="padding:12px;border-bottom:1px solid #eee;"),
-                                Td(
-                                    Span(
-                                        booking.status,
-                                        style=f"padding:4px 8px;border-radius:4px;font-size:0.9em;color:white;background-color:" + 
-                                              {"Confirmed": "#4CAF50",
-                                               "Pending": "#FFA500",
-                                               "Cancelled": "#f44336",
-                                               "Refunded": "#2196F3"}.get(booking.status, "#999")
-                                    ),
-                                    style="padding:12px;border-bottom:1px solid #eee;"
-                                ),
-                                Td(f"${booking.total_price:.2f}", 
-                                   style="padding:12px;border-bottom:1px solid #eee;"),
-                                style="transition:background-color 0.3s;" +
-                                      ("background-color:#f0f7ff;" if booking.status == "Refunded" else "")
-                            ) for booking in sorted_bookings
-                        ],
-                        style="width:100%;border-collapse:collapse;margin-bottom:30px;box-shadow:0 1px 3px rgba(0,0,0,0.1);"
-                    ) if sorted_bookings else Div(
-                        P("No booking history found.", 
-                          style="text-align:center;color:#666;font-style:italic;padding:20px;")
-                    ),
-                    style="overflow-x:auto;"  # Makes table scrollable on mobile
-                ),
-                
-                # Summary statistics
-                Div(
-                    H3("Summary", style="margin-bottom:15px;"),
-                    P(f"Total Bookings: {len(sorted_bookings)}", style="margin:5px 0;"),
-                    P(f"Confirmed Bookings: {len([b for b in sorted_bookings if b.status == 'Confirmed'])}", 
-                      style="margin:5px 0;"),
-                    P(f"Refunded Bookings: {len([b for b in sorted_bookings if b.status == 'Refunded'])}", 
-                      style="margin:5px 0;"),
-                    style="background-color:#f9f9f9;padding:20px;border-radius:8px;margin-top:20px;"
-                ),
-                
-                style="max-width:1200px;margin:0 auto;padding:20px;"
-            ),
-            request=request
-        )
-    )
-
-# 3. Now let's add point redemption to the payment page
 @rt("/payment")
 def payment_page(request=None, booking_id: str = "", amount: str = ""):
     # Find the booking
@@ -2998,7 +2838,6 @@ def process_card_payment(booking_id: str = Form(...), amount: str = Form(...),
         )
     )
 
-# First let's update the verify-card-payment function to award points
 @rt("/verify-card-payment", methods=["POST"])
 def verify_card_payment(request, booking_id: str = Form(...), amount: str = Form(...), 
                       card_number: str = Form(...), exp_date: str = Form(...), 
@@ -3101,7 +2940,6 @@ def verify_card_payment(request, booking_id: str = Form(...), amount: str = Form
         )
     )
 
-# 1. First, let's update the QR payment verification to award points
 @rt("/verify-qr-payment", methods=["POST"])
 def verify_qr_payment(request, booking_id: str = Form(...), amount: str = Form(...)):
     # Find the booking
