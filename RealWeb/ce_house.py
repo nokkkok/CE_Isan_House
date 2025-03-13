@@ -318,6 +318,26 @@ class Booking:
         self.__created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.__total_price = 0.0  # Default to 0, calculated dynamically
 
+    def process_food_selection(self, form_data, booking_controller):
+        """Process food selection and update booking"""
+        food_total = 0.0
+        for key, value in form_data.items():
+            if key.startswith('food_') and value and str(value).isdigit() and int(value) > 0:
+                food_id = key.replace('food_', '')
+                quantity = int(value)
+                
+                # Find food item
+                food_item = next((food for food in booking_controller.food_list if food.food_id == food_id), None)
+                
+                if food_item and food_item.is_available and quantity <= food_item.quantity:
+                    food_order = FoodOrder(food_item, quantity)
+                    self.add_food_order(food_order)
+                    food_total += food_order.subtotal
+                    food_item.update_quantity(quantity)
+        
+        self.calculate_total_price()
+        return food_total
+
     def calculate_total_price(self):
         """Calculate total price including seats and food"""
         seat_total = len(self.__seats) * 10.0  # Assuming $10 per seat
@@ -911,6 +931,34 @@ class Customer:
     @property
     def booking_list(self):
         return self.__booking_list
+
+    def calculate_discount(self, original_amount, discount_option):
+        """Calculate discount based on points and discount option"""
+        discount_percent = 0
+        points_needed = 0
+        final_amount = float(original_amount)
+        
+        if discount_option != "none":
+            try:
+                discount_parts = discount_option.split('_')
+                discount_percent = int(discount_parts[0])
+                points_needed = int(discount_parts[1])
+            except (ValueError, IndexError):
+                return final_amount, discount_percent, points_needed
+        
+        if self.__points < points_needed:
+            return final_amount, discount_percent, points_needed
+        
+        if discount_percent > 0:
+            discount_amount = float(original_amount) * (discount_percent / 100)
+            final_amount = float(original_amount) - discount_amount
+            if final_amount < 0:
+                final_amount = 0
+            
+            self.redeem_points(points_needed)
+        
+        return final_amount, discount_percent, points_needed
+
     
     def compare_password(self, password_to_check):
         """Verify if the provided password matches the stored password"""
