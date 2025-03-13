@@ -939,53 +939,10 @@ async def process_food_selection(request):
         print("[ERROR] Booking not found!")
         return RedirectResponse(url="/", status_code=303)
 
-    # Store original ticket price for debugging
-    original_ticket_price = booking.total_price
-    food_total = 0.0
+    # Process food selection
+    food_total = booking.process_food_selection(form_data, booking_controller)
     
-    try:
-        # Process each food item in the form
-        print("[DEBUG] Form data:", form_data)
-        
-        for key, value in form_data.items():
-            if key.startswith('food_F00') and value and str(value).isdigit() and int(value) > 0:
-                food_id = key.replace('food_F00', '')
-                quantity = int(value)
-                
-                # Find food item
-                food_item = None
-                for food in booking_controller.food_list:
-                    if str(food.food_id) == f"F00{food_id}":
-                        food_item = food
-                        break
-                
-                if food_item:
-                    print(f"[DEBUG] Found food item: {food_item.name} (ID: {food_item.food_id}, Price: {food_item.price}")
-                    
-                    if food_item.is_available and quantity <= food_item.quantity:
-                        # Create food order
-                        food_order = FoodOrder(food_item, quantity)
-                        # Calculate subtotal
-                        subtotal = float(food_item.price) * quantity
-                        food_total += subtotal
-                        
-                        # Add to booking
-                        booking.add_food_order(food_order)
-                        print(f"[DEBUG] Added {quantity}x {food_item.name} to booking. Subtotal: ${subtotal}")
-                    else:
-                        print(f"[ERROR] Food item {food_item.name} is not available or not enough stock.")
-        
-        # Update total price
-        booking.calculate_total_price()
-        print(f"[DEBUG] Total price after adding food: ${booking.total_price}")
-        
-    except Exception as e:
-        print(f"[ERROR] Processing food selection: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        
     # Debug output before redirect
-    print(f"[DEBUG] Original Ticket Price: ${original_ticket_price}")
     print(f"[DEBUG] Food Total: ${food_total}")
     print(f"[DEBUG] Final Booking Price: ${booking.total_price}")
     
@@ -1798,7 +1755,7 @@ def history_page(request=None):
 def redeem_points(request, discount: str = "", points: str = "", customer_id: str = ""):
     return RedirectResponse(url="/profile", status_code=303)
 
-@rt("/apply-discount", methods=["POST"])
+@rt('/apply-discount', methods=["POST"])
 def apply_discount(request, booking_id: str = Form(...), original_amount: str = Form(...), discount_option: str = Form("none")):
     # Find the booking
     booking = None
@@ -1811,39 +1768,15 @@ def apply_discount(request, booking_id: str = Form(...), original_amount: str = 
     if not booking or not booking.customer:
         return RedirectResponse(url="/", status_code=303)
     
-    # Default - no discount
-    discount_percent = 0
-    points_needed = 0
-    final_amount = float(original_amount)
+    # Calculate discount
+    final_amount, discount_percent, points_needed = booking.customer.calculate_discount(original_amount, discount_option)
     
-    # Parse discount option (format: percent_points)
-    if discount_option != "none":
-        try:
-            discount_parts = discount_option.split('_')
-            discount_percent = int(discount_parts[0])
-            points_needed = int(discount_parts[1])
-        except (ValueError, IndexError):
-            return RedirectResponse(url=f"/payment?booking_id={booking_id}&amount={original_amount}", status_code=303)
-    
-    # Check if customer has enough points
-    current_points = booking.customer.get_points_balance()
-    if current_points < points_needed:
+    if points_needed > booking.customer.get_points_balance():
         return RedirectResponse(url=f"/payment?booking_id={booking_id}&amount={original_amount}&error=not_enough_points", status_code=303)
     
-    # Apply discount if selected
-    if discount_percent > 0:
-        # Calculate discounted amount
-        discount_amount = float(original_amount) * (discount_percent / 100)
-        final_amount = float(original_amount) - discount_amount
-        if final_amount < 0:
-            final_amount = 0
-        
-        # Deduct points
-        booking.customer.redeem_points(points_needed)
-        
-        # Record the discount in the booking (you might need to add a discount field to your Booking class)
-        if hasattr(booking, 'set_discount'):
-            booking.set_discount(discount_percent, points_needed)
+    # Record the discount in the booking (you might need to add a discount field to your Booking class)
+    if hasattr(booking, 'set_discount'):
+        booking.set_discount(discount_percent, points_needed)
     
     # Redirect back to payment with updated amount
     return RedirectResponse(
