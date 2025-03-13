@@ -1,0 +1,147 @@
+class Booking:
+    def __init__(self, booking_id: str, customer, showtime, seats=None, status="Pending"):
+        self.__booking_id = booking_id
+        self.__customer = customer
+        self.__showtime = showtime
+        self.__seats = seats or []
+        self.__food_orders = []  # Ensure a separate list for food
+        self.__status = status
+        self.__created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.__total_price = 0.0  # Default to 0, calculated dynamically
+
+    def process_food_selection(self, form_data, booking_controller):
+        """Process food selection and update booking"""
+        food_total = 0.0
+        for key, value in form_data.items():
+            if key.startswith('food_') and value and str(value).isdigit() and int(value) > 0:
+                food_id = key.replace('food_', '')
+                quantity = int(value)
+                
+                # Find food item
+                food_item = next((food for food in booking_controller.food_list if food.food_id == food_id), None)
+                
+                if food_item and food_item.is_available and quantity <= food_item.quantity:
+                    food_order = FoodOrder(food_item, quantity)
+                    self.add_food_order(food_order)
+                    food_total += food_order.subtotal
+                    food_item.update_quantity(quantity)
+        
+        self.calculate_total_price()
+        return food_total
+
+
+class Customer:
+    def __init__(self, customer_id: str, name: str, email: str, password: str):
+        self.__customer_id = customer_id
+        self.__name = name
+        self.__email = email
+        self.__password = password
+        self.__booking_list = []
+        self.__ticket_list = []
+        self.__points = 0
+
+    def calculate_discount(self, original_amount, discount_option):
+        """Calculate discount based on points and discount option"""
+        discount_percent = 0
+        points_needed = 0
+        final_amount = float(original_amount)
+        
+        if discount_option != "none":
+            try:
+                discount_parts = discount_option.split('_')
+                discount_percent = int(discount_parts[0])
+                points_needed = int(discount_parts[1])
+            except (ValueError, IndexError):
+                return final_amount, discount_percent, points_needed
+        
+        if self.__points < points_needed:
+            return final_amount, discount_percent, points_needed
+        
+        if discount_percent > 0:
+            discount_amount = float(original_amount) * (discount_percent / 100)
+            final_amount = float(original_amount) - discount_amount
+            if final_amount < 0:
+                final_amount = 0
+            
+            self.redeem_points(points_needed)
+        
+        return final_amount, discount_percent, points_needed
+
+
+
+####################################################################################################################################
+
+
+
+
+
+@rt('/apply-discount', methods=["POST"])
+def apply_discount(request, booking_id: str = Form(...), original_amount: str = Form(...), discount_option: str = Form("none")):
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
+    
+    if not booking or not booking.customer:
+        return RedirectResponse(url="/", status_code=303)
+    
+    # Calculate discount
+    final_amount, discount_percent, points_needed = booking.customer.calculate_discount(original_amount, discount_option)
+    
+    if points_needed > booking.customer.get_points_balance():
+        return RedirectResponse(url=f"/payment?booking_id={booking_id}&amount={original_amount}&error=not_enough_points", status_code=303)
+    
+    # Record the discount in the booking (you might need to add a discount field to your Booking class)
+    if hasattr(booking, 'set_discount'):
+        booking.set_discount(discount_percent, points_needed)
+    
+    # Redirect back to payment with updated amount
+    return RedirectResponse(
+        url=f"/payment?booking_id={booking_id}&amount={final_amount:.2f}&discount_applied={discount_percent}", 
+        status_code=303
+    )
+
+@rt('/process-food-selection', methods=["POST"])
+async def process_food_selection(request):
+    # Get form data using the async form method
+    form = await request.form()
+    form_data = dict(form)
+    
+    # Extract booking ID from form
+    booking_id = form_data.get('booking_id', '')
+    
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
+    
+    if not booking:
+        print("[ERROR] Booking not found!")
+        return RedirectResponse(url="/", status_code=303)
+
+    # Process food selection
+    food_total = booking.process_food_selection(form_data, booking_controller)
+    
+    # Debug output before redirect
+    print(f"[DEBUG] Food Total: ${food_total}")
+    print(f"[DEBUG] Final Booking Price: ${booking.total_price}")
+    
+    # Redirect to payment
+    return RedirectResponse(
+        url=f"/payment?booking_id={booking_id}&amount={booking.total_price}",
+        status_code=303
+    )
+
+
+
+
+
+
+
+
