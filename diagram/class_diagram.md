@@ -23,8 +23,6 @@ direction TB
 	    +redeem_points()
 	    +earn_points()
 	    +get_points_balance()
-	    +customer_to_member()
-	    +calculate_discount()
     }
 
     class Booking {
