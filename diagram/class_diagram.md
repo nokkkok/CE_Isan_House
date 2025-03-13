@@ -24,6 +24,7 @@ direction TB
 	    +earn_points()
 	    +get_points_balance()
 	    +customer_to_member()
+	    +calculate_discount()
     }
 
     class Booking {
@@ -99,6 +100,7 @@ direction TB
 	    +append_customer()
 	    +find_customer_by_email()
 	    +find_customer_by_id()
+	    +process_food_selection()
     }
 
     class Movie {
