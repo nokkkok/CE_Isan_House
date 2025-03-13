@@ -183,7 +183,7 @@ def create_instance():
     # Add foods
     food1 = Food("F001", "Popcorn", "Large popcorn", 5.0, 100)
     food2 = Food("F002", "Soda", "Cold soda", 3.0, 100)
-    food3 = Food("F003", "Sausages", "Chesse suasages", 4.5, 50)
+    food3 = Food("F003", "PaPaYa Salad", "Som Tam", 4.5, 50)
     booking_controller.append_food(food1)
     booking_controller.append_food(food2)
     booking_controller.append_food(food3)
@@ -1462,42 +1462,49 @@ def profile_page(request):
                     
                     # Booking history section with simplified access
                     H2("Your Bookings", style="margin-bottom:20px;"),
-                    *[
+                     *[
+                    Div(
+                        H3(f"Booking #{booking.booking_id}", style="margin-bottom:10px;"),
+                        P(f"Movie: {booking.showtime.movie.name}", style="margin:5px 0;"),
+                        P(f"Date: {booking.timestamp}", style="margin:5px 0;"),
+                        P(f"Time: {booking.showtime.time}", style="margin:5px 0;"),
+                        P(f"Theater: {booking.showtime.theater.name}", style="margin:5px 0;"),
+                        P(f"Seats: {', '.join(booking.seats)}", style="margin:5px 0;"),
+                        P(f"Status: {booking.status}", 
+                          style=f"margin:5px 0;font-weight:bold;color:" + 
+                                {"Confirmed": "#4CAF50", "Pending": "#FF9800", 
+                                 "Cancelled": "#f44336", "Refunded": "#2196F3"}.get(booking.status, "#000")),
+                        
+                        # Action buttons based on status
                         Div(
-                            H3(f"Booking #{booking.booking_id}", style="margin-bottom:10px;"),
-                            P(f"Movie: {booking.showtime.movie.name}", style="margin:5px 0;"),
-                            P(f"Date: {booking.timestamp}", style="margin:5px 0;"),
-                            P(f"Time: {booking.showtime.time}", style="margin:5px 0;"),
-                            P(f"Theater: {booking.showtime.theater.name}", style="margin:5px 0;"),
-                            P(f"Seats: {', '.join(booking.seats)}", style="margin:5px 0;"),
-                            P(f"Status: {booking.status}", 
-                              style=f"margin:5px 0;font-weight:bold;color:" + 
-                                    {"Confirmed": "#4CAF50", "Pending": "#FF9800", 
-                                     "Cancelled": "#f44336", "Refunded": "#2196F3"}.get(booking.status, "#000")),
+                            # Add "Complete Payment" button for pending bookings
+                            A(
+                                "Complete Payment",
+                                href=f"/repay?booking_id={booking.booking_id}&amount={booking.total_price}",
+                                style="display:inline-block;background-color:#4CAF50;color:white;padding:8px 15px;border-radius:4px;text-decoration:none;margin-right:10px;"
+                            ) if booking.status == "Pending" else None,
                             
-                            # Action buttons based on status
-                            Div(
-                                # Add "Complete Payment" button for pending bookings
-                                A(
-                                    "Complete Payment",
-                                    href=f"/repay?booking_id={booking.booking_id}&amount={booking.total_price}",
-                                    style="display:inline-block;background-color:#4CAF50;color:white;padding:8px 15px;border-radius:4px;text-decoration:none;margin-right:10px;"
-                                ) if booking.status == "Pending" else None,
-                                
-                                # Add "Request Refund" button for confirmed bookings
-                                A(
-                                    "Request Refund",
-                                    href=f"/refund/{booking.booking_id}",
-                                    style="display:inline-block;background-color:#FF5722;color:white;padding:8px 15px;border-radius:4px;text-decoration:none;"
-                                ) if booking.status == "Confirmed" else None,
-                                
-                                style="margin-top:15px;"
-                            ),
-                             style="background-color:#f8f8f8;padding:15px;border-radius:8px;margin-bottom:15px;"
-                        ) for booking in customer_bookings
-                    ] if customer_bookings else [
-                        P("You don't have any bookings yet.", style="font-style:italic;color:#777;")
-                    ],
+                            # Add "Cancel Booking" button for pending bookings
+                            A(
+                                "Cancel Booking",
+                                href=f"/cancel/{booking.booking_id}",
+                                style="display:inline-block;background-color:#f44336;color:white;padding:8px 15px;border-radius:4px;text-decoration:none;"
+                            ) if booking.status == "Pending" else None,
+                            
+                            # Add "Request Refund" button for confirmed bookings
+                            A(
+                                "Request Refund",
+                                href=f"/refund/{booking.booking_id}",
+                                style="display:inline-block;background-color:#FF5722;color:white;padding:8px 15px;border-radius:4px;text-decoration:none;"
+                            ) if booking.status == "Confirmed" else None,
+                            
+                            style="margin-top:15px;"
+                        ),
+                         style="background-color:#f8f8f8;padding:15px;border-radius:8px;margin-bottom:15px;"
+                    ) for booking in customer_bookings
+                ] if customer_bookings else [
+                    P("You don't have any bookings yet.", style="font-style:italic;color:#777;")
+                ],
                     
                     style="max-width:800px;margin:0 auto;"
                 )
@@ -2055,6 +2062,172 @@ def process_refund(booking_id: str = Form(...)):
                 P(f"Current points balance: {booking.customer.get_points_balance()}",
                   style="text-align:center;margin-bottom:30px;"),
                 
+                P("The seats have been released and are available for booking again.",
+                  style="text-align:center;margin-bottom:30px;"),
+                A("Return to Profile", href="/profile", 
+                  style="display:inline-block;background-color:#4CAF50;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;text-align:center;"),
+                style="max-width:500px;margin:0 auto;padding:30px;background-color:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
+            ),
+            request=None
+        )
+    )
+
+@rt('/cancel/{booking_id}')
+def cancel_booking_page(request, booking_id: str):
+    # Check if user is logged in
+    customer_id = request.cookies.get("customer_id")
+    if not customer_id:
+        return RedirectResponse(url="/login")
+    
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
+    
+    # Check if booking exists and belongs to this user
+    if not booking or str(booking.customer.customer_id) != str(customer_id):
+        return Titled(
+            "Error",
+            *create_page_structure(
+                Container(
+                    H1("Error", style="color:red;text-align:center;"),
+                    P("Booking not found or unauthorized access.", style="text-align:center;"),
+                    A("Back to Profile", href="/profile", 
+                      style="display:block;text-align:center;margin-top:20px;color:#4CAF50;")
+                ),
+                request=request
+            )
+        )
+    
+    # Check if booking is cancellable (pending status only)
+    if booking.status != "Pending":
+        return Titled(
+            "Cancellation Not Available",
+            *create_page_structure(
+                Container(
+                    H1("Cancellation Not Available", style="color:red;text-align:center;"),
+                    P("This booking cannot be cancelled.", style="text-align:center;margin-bottom:15px;"),
+                    P(f"Reason: This booking has status '{booking.status}'", style="text-align:center;"),
+                    P("Only pending bookings can be cancelled.", style="text-align:center;margin-bottom:30px;"),
+                    A("Back to Profile", href="/profile", 
+                      style="display:inline-block;background-color:#4CAF50;color:white;padding:10px 15px;text-decoration:none;border-radius:4px;"),
+                    style="padding:30px;max-width:600px;margin:0 auto;background-color:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
+                ),
+                request=request
+            )
+        )
+    
+    # Show cancellation confirmation page
+    return Titled(
+        "Confirm Cancellation - CE ISAN HOUSE",
+        *create_page_structure(
+            Container(
+                H1("Confirm Cancellation", style="text-align:center;margin-bottom:30px;"),
+                
+                # Booking details
+                Div(
+                    H3("Booking Details", style="margin-bottom:15px;"),
+                    P(f"Booking ID: {booking.booking_id}", style="margin:5px 0;"),
+                    P(f"Movie: {booking.showtime.movie.name}", style="margin:5px 0;"),
+                    P(f"Time: {booking.showtime.time}", style="margin:5px 0;"),
+                    P(f"Theater: {booking.showtime.theater.name}", style="margin:5px 0;"),
+                    P(f"Seats: {', '.join(booking.seats)}", style="margin:5px 0;"),
+                    P(f"Total Price: ${booking.total_price:.2f}", style="margin:5px 0;font-weight:bold;"),
+                    style="background-color:#f8f8f8;padding:15px;border-radius:8px;margin-bottom:30px;"
+                ),
+                
+                # Warning message
+                P("Are you sure you want to cancel this booking? This action cannot be undone.", 
+                  style="text-align:center;color:#f44336;font-weight:bold;margin-bottom:30px;"),
+                
+                # Simple form with just the buttons
+                Form(
+                    # Hidden booking ID field
+                    Input(type="hidden", name="booking_id", value=booking_id),
+                    
+                    # Buttons side by side
+                    Div(
+                        Button("Confirm Cancellation", type="submit", 
+                               style="background-color:#f44336;color:white;padding:10px 25px;border:none;border-radius:4px;cursor:pointer;margin-right:15px;font-weight:bold;"),
+                        A("Keep Booking", href="/profile", 
+                          style="display:inline-block;background-color:#999;color:white;padding:10px 25px;text-decoration:none;border-radius:4px;"),
+                        style="text-align:center;"
+                    ),
+                    
+                    action="/process-cancellation",
+                    method="post",
+                ),
+                
+                style="max-width:600px;margin:0 auto;padding:30px;background-color:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);"
+            ),
+            request=request
+        )
+    )
+
+@rt("/process-cancellation", methods=["POST"])
+def process_cancellation(booking_id: str = Form(...)):
+    # Find the booking
+    booking = None
+    if hasattr(booking_controller, 'bookings'):
+        for b in booking_controller.bookings:
+            if b.booking_id == booking_id:
+                booking = b
+                break
+    
+    if not booking:
+        return Titled(
+            "Error",
+            *create_page_structure(
+                Container(
+                    H1("Error", style="color:red;text-align:center;"),
+                    P("Booking not found!", style="text-align:center;"),
+                    A("Back to Profile", href="/profile", 
+                      style="display:block;text-align:center;margin-top:20px;color:#4CAF50;")
+                ),
+                request=None
+            )
+        )
+    
+    # Process the cancellation
+    booking.status = "Cancelled"
+    
+    # Release seats (similar to refund process)
+    showtime = booking.showtime
+    
+    if not hasattr(showtime, 'booked_seats'):
+        showtime.booked_seats = []
+    
+    for seat in booking.seats:
+        if seat in showtime.booked_seats:
+            showtime.booked_seats.remove(seat)
+            print(f"[DEBUG] Removed seat {seat} from showtime's booked seats")
+        else:
+            print(f"[DEBUG] Seat {seat} not found in showtime's booked seats")
+    
+    if hasattr(booking_controller, 'seat_bookings'):
+        old_count = len(booking_controller.seat_bookings)
+        booking_controller.seat_bookings = [
+            seat_booking for seat_booking in booking_controller.seat_bookings 
+            if not seat_booking.seat_id.startswith(f"{booking_id}-")
+        ]
+        new_count = len(booking_controller.seat_bookings)
+        print(f"[DEBUG] Removed {old_count - new_count} seat bookings from booking controller")
+    
+    print(f"[DEBUG] Released {len(booking.seats)} seats from booking {booking_id}")
+    
+    # Show cancellation confirmation
+    return Titled(
+        "Cancellation Successful",
+        *create_page_structure(
+            Container(
+                H1("Booking Cancelled!", style="text-align:center;color:#4CAF50;margin-bottom:30px;"),
+                P("Your booking has been cancelled successfully.", 
+                  style="text-align:center;margin-bottom:30px;"),
+                
+                # No payment was processed, so no refund amount to show
                 P("The seats have been released and are available for booking again.",
                   style="text-align:center;margin-bottom:30px;"),
                 A("Return to Profile", href="/profile", 
