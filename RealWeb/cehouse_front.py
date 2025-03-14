@@ -1219,15 +1219,6 @@ def complete_booking(request, showtime_id: int, seats: str = ""):
         )
     )
 
-# Route to process payment
-@rt('/process-payment', methods=["POST"])
-def process_payment(booking_id: str = Form(...), payment_method: str = Form(...), amount: str = Form(...)):
-    # Redirect to the appropriate payment method page based on selection
-    if payment_method == "card":
-        return RedirectResponse(url=f"/card-payment?booking_id={booking_id}&amount={amount}", status_code=303)
-    else:  # QR Code
-        return RedirectResponse(url=f"/qrcode-payment?booking_id={booking_id}&amount={amount}", status_code=303)
-
 # Search Route
 @rt('/search')
 def search(request, search: str = ""):  # Changed from 'get' to 'search'
